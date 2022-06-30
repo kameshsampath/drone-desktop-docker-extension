@@ -1,0 +1,186 @@
+package handler
+
+import (
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path"
+	"reflect"
+	"strings"
+	"testing"
+
+	echo "github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+)
+
+var (
+	cwd    string
+	mockDB = []*DronePipeline{
+		{
+			ID:   "55feaccf5aff35d79551b5cffa7ffff9",
+			Name: "JavaBuild",
+			Path: "/tmp/test-project",
+		},
+	}
+)
+
+func getDataFile(filePath string) string {
+	cwd, _ := os.Getwd()
+	return path.Join(cwd, "testdata", filePath)
+}
+
+func prepareDataFile() error {
+	dataFileSource := getDataFile("db.data.json")
+	b, err := ioutil.ReadFile(dataFileSource)
+	if err != nil {
+		return err
+	}
+
+	dataFile := getDataFile("db.json")
+	if err := ioutil.WriteFile(dataFile, b, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TestGetPipelines(t *testing.T) {
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+
+	expected := []*DronePipeline{
+		{
+			ID:   "0592f315d12d71632b2fea692fc9625e",
+			Name: "GoLang Build",
+			Path: "/tmp/test-golang-project",
+		},
+		{
+			ID:   "55feaccf5aff35d79551b5cffa7ffff9",
+			Name: "Java Build",
+			Path: "/tmp/test-java-project",
+		},
+		{
+			ID:   "d8366124dbd49939f0485772abd3617d",
+			Name: "Node Build",
+			Path: "/tmp/test-nodejs-project",
+		},
+	}
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/pipelines", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	dataFile := getDataFile("db.json")
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assert.NoError(t, h.GetPipelines(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var actual []*DronePipeline
+		json.Unmarshal(rec.Body.Bytes(), &actual)
+		assert.Equal(t, len(actual), 3)
+		assert.True(t, reflect.DeepEqual(expected, actual))
+	}
+	os.Remove(dataFile)
+}
+
+func TestDeletePipeline(t *testing.T) {
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodDelete, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/pipeline/:id")
+	c.SetParamNames("id")
+	c.SetParamValues("d8366124dbd49939f0485772abd3617d")
+	dataFile := getDataFile("db.json")
+
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if assert.NoError(t, h.DeletePipeline(c)) {
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		dp := DronePipeline{}
+		b, err := ioutil.ReadFile(dataFile)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		json.Unmarshal(b, &dp)
+		assert.NotNil(t, dp)
+		ok := h.hasElement("d8366124dbd49939f0485772abd3617d")
+		assert.False(t, ok)
+	}
+	os.Remove(dataFile)
+}
+
+func TestSavePipeline(t *testing.T) {
+	dataFile := getDataFile("db.json")
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+	e := echo.New()
+	newPipelineJSON := `[
+		{"name":"GoLang Build", "path":"/tmp/test-golang-project"}
+	]`
+	req := httptest.NewRequest(http.MethodPost, "/pipeline", strings.NewReader(newPipelineJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if assert.NoError(t, h.SavePipelines(c)) {
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		var dps []*DronePipeline
+		json.Unmarshal(rec.Body.Bytes(), &dps)
+		assert.NotNil(t, dps)
+		assert.Equal(t, len(dps), 1)
+		assert.True(t, reflect.DeepEqual(dps, []*DronePipeline{
+			{ID: "0592f315d12d71632b2fea692fc9625e", Name: "GoLang Build", Path: "/tmp/test-golang-project"},
+		}))
+	}
+	os.Remove(dataFile)
+}
+
+func TestSavePipelines(t *testing.T) {
+	dataFile := getDataFile("db.json")
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+	e := echo.New()
+	newPipelinesJSON := `[
+		{"name":"GoLang Build", "path":"/tmp/test-golang-project"},
+		{"name":"Java Build", "path":"/tmp/test-java-project"}
+	]`
+	req := httptest.NewRequest(http.MethodPost, "/pipeline", strings.NewReader(newPipelinesJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if assert.NoError(t, h.SavePipelines(c)) {
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		var dps []*DronePipeline
+		json.Unmarshal(rec.Body.Bytes(), &dps)
+		assert.NotNil(t, dps)
+		assert.Equal(t, len(dps), 2)
+		assert.True(t, reflect.DeepEqual(dps, []*DronePipeline{
+			{ID: "0592f315d12d71632b2fea692fc9625e", Name: "GoLang Build", Path: "/tmp/test-golang-project"},
+			{ID: "307074e99d8d27f4e6d2172b8a714220", Name: "Java Build", Path: "/tmp/test-java-project"},
+		}))
+	}
+	os.Remove(dataFile)
+}

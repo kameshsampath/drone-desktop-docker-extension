@@ -1,0 +1,30 @@
+{
+  "icon": "logo.svg",
+  "vm": {
+    "composefile": "docker-compose.yaml",
+    "exposes": {
+      "socket": "extension-drone-desktop.sock"
+    }
+  },
+  "ui": {
+    "dashboard-tab": {
+      "title": "Drone-Desktop",
+      "src": "index.html",
+      "root": "ui",
+      "backend": {
+        "socket": "extension-drone-desktop.sock"
+      }
+    }
+  },
+  "host": {
+    "binaries": [
+      {
+        "darwin": [
+          {
+            "path": "/usr/local/bin/yq"
+          }
+        ]
+      }
+    ]
+  }
+}

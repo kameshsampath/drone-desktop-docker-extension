@@ -1,0 +1,17 @@
+[
+  {
+    "id": "0592f315d12d71632b2fea692fc9625e",
+    "name": "GoLang Build",
+    "path": "/tmp/test-golang-project"
+  },
+  {
+    "id": "55feaccf5aff35d79551b5cffa7ffff9",
+    "name": "Java Build",
+    "path": "/tmp/test-java-project"
+  },
+  {
+    "id": "d8366124dbd49939f0485772abd3617d",
+    "name": "Node Build",
+    "path": "/tmp/test-nodejs-project"
+  }
+]
