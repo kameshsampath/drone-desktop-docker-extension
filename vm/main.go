@@ -6,7 +6,7 @@ import (
 	"net"
 	"os"
 
-	"github.com/kameshsampath/drone-desktop/vm/handler"
+	"github.com/kameshsampath/drone-desktop-docker-extension/vm/handler"
 	echo "github.com/labstack/echo/v4"
 	log "github.com/sirupsen/logrus"
 )

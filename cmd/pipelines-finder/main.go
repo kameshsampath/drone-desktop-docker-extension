@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kameshsampath/drone-desktop/pkg/ignore"
+	"github.com/kameshsampath/drone-desktop-docker-extension/pkg/ignore"
 	"gopkg.in/yaml.v3"
 )
 
