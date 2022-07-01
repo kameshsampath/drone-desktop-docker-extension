@@ -32,3 +32,7 @@ export function pipelineFQN(pipelinePath:string, pipelineName:string):string {
     }
     return `${pipelinePath.replaceAll("/", "-")}~~${pipelineName}`
 }
+
+export function vscodeURI(pipelinePath:string): string {
+    return `vscode://file${pipelinePath}?windowId=_blank`;
+}

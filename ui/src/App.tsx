@@ -1,6 +1,6 @@
 import React, { Fragment, useContext, useEffect, useState } from 'react'
 import { createDockerDesktopClient } from '@docker/extension-api-client'
-import { Box, Button, Collapse, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
+import { Box, Button, Collapse, IconButton, Link, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
 import RemoveDoneIcon from '@mui/icons-material/RemoveDone';
 import ArticleIcon from '@mui/icons-material/Article';
 import ImportDialog from './components/ImportPipelineDialog'
@@ -333,8 +333,8 @@ export function App() {
             <IconButton
               aria-label="edit in vscode"
               color="primary"
-              onClick={() => handleOpenInVsCode(row.pipelinePath)}>
-              <EditIcon />
+              href={utils.vscodeURI(row.pipelinePath)}>
+              <img src="/images/vscode.png" width="24"/>
             </IconButton>
           </TableCell>
         </TableRow>
