@@ -12,11 +12,12 @@ NO_COLOR   = \033[m
 
 test:
 	@echo "$(INFO_COLOR)Testing...$(NO_COLOR)"
-	go test ./...
+	go test $(go list ./... | grep -v /vendor/ | grep -v /ui/)
 
 bin: ## Build the binary for the current platform
 	@echo "$(INFO_COLOR)Building...$(NO_COLOR)"
 	$(GO_BUILD) -o bin/service ./vm
+	$(GO_BUILD) -o bin/pipelines-finder ./cmd/pipelines-finder
 
 build-extension: ## Build service image to be deployed as a desktop extension
 	docker build --tag=$(IMAGE):$(TAG) .

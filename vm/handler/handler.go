@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"crypto/md5"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -21,9 +19,10 @@ type (
 
 	//DronePipeline is the request data to save the Pipeline
 	DronePipeline struct {
-		ID   string `json:"id,omitempty"`
-		Name string `json:"name,omitempty"`
-		Path string `json:"path,omitempty"`
+		ID           string `json:"id"`
+		Name         string `json:"pipelineName"`
+		Path         string `json:"pipelinePath"`
+		PipelineFile string `json:"pipelineFile"`
 	}
 )
 
@@ -117,7 +116,6 @@ func (h *Handler) SavePipelines(c echo.Context) error {
 		return err
 	}
 	for _, dp := range dps {
-		dp.ID = generateId(dp.Path)
 		if !h.hasElement(dp.ID) {
 			h.db = append(h.db, dp)
 		}
@@ -153,8 +151,4 @@ func (h *Handler) persistDB() error {
 		return err
 	}
 	return nil
-}
-
-func generateId(path string) string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(path)))
 }

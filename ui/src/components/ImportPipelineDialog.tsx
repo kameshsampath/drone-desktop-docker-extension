@@ -14,7 +14,8 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
 
 import { MyContext } from "../index";
-import * as YAML from "js-yaml";
+
+const filehound = window.filehound
 
 const client = createDockerDesktopClient();
 
@@ -44,8 +45,11 @@ export default function ImportDialog({ ...props }) {
         if (result.canceled) {
           return;
         }
-
-        setPath(result.filePaths[0]);
+        const droneFiles = filehound.create()
+        .paths(...result.filePaths)
+        .ext('.drone.yml')
+        .findSync();
+        console.log("Drone files %s",droneFiles)
       });
   };
 

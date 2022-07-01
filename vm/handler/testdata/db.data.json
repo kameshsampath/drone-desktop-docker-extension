@@ -1,17 +1,20 @@
 [
   {
     "id": "0592f315d12d71632b2fea692fc9625e",
-    "name": "GoLang Build",
-    "path": "/tmp/test-golang-project"
+    "pipelineName": "GoLang Build",
+    "pipelinePath": "/tmp/test-golang-project",
+    "pipelineFile": "/tmp/test-golang-project/.drone.yml"
   },
   {
     "id": "55feaccf5aff35d79551b5cffa7ffff9",
-    "name": "Java Build",
-    "path": "/tmp/test-java-project"
+    "pipelineName": "Java Build",
+    "pipelinePath": "/tmp/test-java-project",
+    "pipelineFile": "/tmp/test-java-project/.drone.yml"
   },
   {
     "id": "d8366124dbd49939f0485772abd3617d",
-    "name": "Node Build",
-    "path": "/tmp/test-nodejs-project"
+    "pipelineName": "Node Build",
+    "pipelinePath": "/tmp/test-nodejs-project",
+    "pipelineFile": "/tmp/test-nodejs-project/.drone.yml"
   }
 ]
