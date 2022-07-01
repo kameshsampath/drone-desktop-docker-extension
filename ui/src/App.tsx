@@ -1,13 +1,15 @@
 import React, { Fragment, useContext, useEffect, useState } from 'react'
 import { createDockerDesktopClient } from '@docker/extension-api-client'
 import { Box, Button, Collapse, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
-import { AddCircle, CheckCircle, Error, RunCircle } from '@mui/icons-material'
-import TerminalIcon from '@mui/icons-material/Terminal';
 import RemoveDoneIcon from '@mui/icons-material/RemoveDone';
 import ArticleIcon from '@mui/icons-material/Article';
 import ImportDialog from './components/ImportPipelineDialog'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import RunCircleIcon from '@mui/icons-material/RunCircle';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 import EditIcon from '@mui/icons-material/Edit';
 
 import * as _ from 'lodash';
@@ -34,8 +36,35 @@ export function App() {
   const [loadingPipelines, setLoadingPipelines] = React.useState<boolean>(true);
   const [openImportDialog, setOpenImportDialog] =
     React.useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+  const [openInVsCode, setOpenInVsCode] = useState(false);
 
   const ddClient = useDockerDesktopClient()
+
+  function usePipelineStatus(steps: StepInfo[]) {
+    console.log(" usePipelineStatus " + JSON.stringify(steps))
+    if (steps && steps.length > 0) {
+      const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start')
+      if (runningSteps.length > 0) {
+        return (
+          <RunCircleIcon color='warning' />
+        )
+      }
+      const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error')
+      if (erroredSteps.length > 0) {
+        return (
+          <ErrorIcon color='error' />
+        )
+      }
+      const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done')
+      if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
+        return (
+          <CheckCircleIcon color='success' />
+        )
+      }
+    }
+    return <CheckCircleIcon color='success' />
+  }
 
   function refreshData(
     rowId: string,
@@ -48,21 +77,6 @@ export function App() {
 
     console.log("Refresh Data " + pipelineFQN + " Steps " + JSON.stringify(steps))
 
-    //TODO revisit logic
-    if (steps && steps.length > 0) {
-      const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start')
-      if (runningSteps.length > 0) {
-        status = "run"
-      }
-      const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error')
-      if (erroredSteps.length > 0) {
-        status = "error"
-      }
-      const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done')
-      if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
-        status = "done"
-      }
-    }
     return {
       id: rowId,
       pipelineName,
@@ -71,6 +85,7 @@ export function App() {
       steps
     }
   }
+
   useEffect(() => {
     const loadPipelines = async () => {
       try {
@@ -155,7 +170,6 @@ export function App() {
                   }
                   stepContainers.set(pipelineFQN, newSteps)
                   console.log("Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                  setReloadTable(!reloadTable)
                   setReloadSteps(!reloadSteps)
                 }
                 break;
@@ -183,7 +197,6 @@ export function App() {
                     };
                     stepContainers.set(pipelineFQN, steps)
                     console.log("Updated Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                    setReloadTable(!reloadTable)
                     setReloadSteps(!reloadSteps)
                   }
                 }
@@ -191,7 +204,6 @@ export function App() {
               }
               case utils.EventStatus.DESTROY: {
                 console.log("DESTROY %s", JSON.stringify(event))
-                const exitCode = event.Actor.Attributes["exitCode"];
                 const stepContainerId = event.Actor["ID"]
                 const pipelineFQN = event.Actor.Attributes["io.drone.pipeline.name"];
                 const stepName = event.Actor.Attributes["io.drone.step.name"];
@@ -209,8 +221,8 @@ export function App() {
                     };
                     stepContainers.set(pipelineFQN, steps)
                     console.log("Updated Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                    setReloadTable(!reloadTable)
-                    setReloadSteps(!reloadSteps)
+                    setReloadTable(!reloadTable);
+                    setReloadSteps(!reloadSteps);
                   }
                 }
                 break;
@@ -235,28 +247,58 @@ export function App() {
     console.log("Adding Steps " + JSON.stringify(row))
 
     const handleStepLogs = (step: StepInfo) => {
-      console.log("Handle Step Logs");
+      console.log("Handle Step Logs for step %", JSON.stringify(step));
+      const process = ddClient.docker.cli.exec(
+        'logs',
+        [
+          "--details",
+          "--follow",
+          step.stepContainerId
+        ],
+        {
+          stream: {
+            splitOutputLines: true,
+            onOutput(data) {
+              if (data.stdout) {
+                console.error(data.stdout);
+              } else {
+                console.log(data.stderr);
+              }
+            },
+            onError(error) {
+              console.error(error);
+            },
+            onClose(exitCode) {
+              console.log("onClose with exit code " + exitCode);
+            }
+          }
+        }
+      );
+
+      return () => {
+        process.close();
+      }
     }
 
 
     return (
       <Fragment>
-        <TableRow key={row.stepContainerId}>
+        <TableRow key={row.stepContainerId} sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
           <TableCell>{row.stepName}</TableCell>
           <TableCell>{row.stepImage} </TableCell>
           <TableCell>
-            {row.status === "done" && <CheckCircle />}
-            {row.status === "start" && <RunCircle />}
-            {row.status === "error" && <Error />}
+            {row.status === "done" && <CheckCircleIcon color='success' />}
+            {row.status === "start" && <RunCircleIcon color='warning' />}
+            {row.status === "error" && <ErrorIcon color='error' />}
             {row.status === "destroy" && <RemoveDoneIcon color="info" />}
           </TableCell>
           <TableCell>
-           { row.status !== "destroy" && <IconButton color="primary"
-              hidden={ row.status !== "destroy"}
+            {row.status !== "destroy" && <IconButton color="primary"
+              hidden={row.status !== "destroy"}
               onClick={() => handleStepLogs(row)} >
               <ArticleIcon />
             </IconButton>
-          }
+            }
           </TableCell>
         </TableRow>
       </Fragment>
@@ -265,15 +307,13 @@ export function App() {
 
   function Row(props: { row: ReturnType<typeof refreshData> }) {
     const { row } = props;
-    const [open, setOpen] = useState(false);
-    const [openInVsCode, setOpenInVsCode] = useState(false);
 
     const handleOpenInVsCode = (pipelinePath: string) => {
       console.log(`Open ${pipelinePath} in vscode`);
     }
     return (
       <Fragment>
-        <TableRow sx={{ '& > *': { borderBottom: 'unset' } }}>
+        <TableRow sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
           <TableCell>
             <IconButton
               aria-label="expand row"
@@ -287,9 +327,7 @@ export function App() {
             {row.pipelineName}
           </TableCell>
           <TableCell component="th" scope="row">
-            {row.status === "start" && <RunCircle color='warning' />}
-            {row.status === "done" && <CheckCircle color='success' />}
-            {row.status === "error" && <CheckCircle color='error' />}
+            {row.steps && usePipelineStatus(row.steps)}
           </TableCell>
           <TableCell>
             <IconButton
@@ -300,10 +338,10 @@ export function App() {
             </IconButton>
           </TableCell>
         </TableRow>
-        <TableRow>
+        {row.steps && <TableRow sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
           <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
             <Collapse in={open} timeout="auto" unmountOnExit>
-              <Box sx={{ margin: 1 }}>
+              <Box>
                 <Typography variant="h6" gutterBottom component="div">
                   Steps
                 </Typography>
@@ -326,6 +364,7 @@ export function App() {
             </Collapse>
           </TableCell>
         </TableRow>
+        }
       </Fragment>
     )
   }
@@ -351,7 +390,7 @@ export function App() {
         <Button
           variant="contained"
           onClick={handleImportPipeline}
-          endIcon={<AddCircle />}>
+          endIcon={<AddCircleIcon />}>
           Add Pipeline
         </Button>
         <TableContainer component={Paper}>
