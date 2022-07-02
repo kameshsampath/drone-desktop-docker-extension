@@ -8,7 +8,7 @@ export const MyContext = React.createContext(null);
 
 const ThemeProvider = (props) => {
   const [store, setStore] = useState({
-    pipelines: [],
+    pipelines: []
   });
 
   const [actions, setActions] = useState({
@@ -16,7 +16,7 @@ const ThemeProvider = (props) => {
       setStore({
         pipelines: value,
       });
-    },
+    }
   });
 
   return (

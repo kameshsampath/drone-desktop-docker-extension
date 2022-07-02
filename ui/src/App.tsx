@@ -1,14 +1,6 @@
-import React, { Fragment, useContext, useEffect, useState } from 'react'
-import { createDockerDesktopClient } from '@docker/extension-api-client'
-import { Box, Button, Collapse, IconButton, Link, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material'
-import RemoveDoneIcon from '@mui/icons-material/RemoveDone';
-import ArticleIcon from '@mui/icons-material/Article';
-import ImportDialog from './components/ImportPipelineDialog'
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import RunCircleIcon from '@mui/icons-material/RunCircle';
+import React, { useCallback, useContext, useEffect, useReducer, useState } from 'react'
+import { Button, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from '@mui/material';
+import ImportDialog from './components/ImportPipelineDialog';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 import * as _ from 'lodash';
@@ -16,76 +8,37 @@ import * as _ from 'lodash';
 import { MyContext } from '.'
 import * as utils from './utils'
 import { StepInfo } from './utils'
-
-const client = createDockerDesktopClient();
-
-function useDockerDesktopClient() {
-  return client;
-}
-
+import { Row } from './components/Pipeline';
 
 export function App() {
-  const context = useContext(MyContext);
-  const [rows, setRows] = React.useState([]);
-  const [pipelines, setPipelines] = React.useState([]);
-  const [stepContainers] = React.useState<Map<string, StepInfo[]>
-  >(new Map<string, StepInfo[]>());
-  const [reloadTable, setReloadTable] = React.useState<boolean>(false);
-  const [reloadSteps, setReloadSteps] = React.useState<boolean>(false);
-  const [loadingPipelines, setLoadingPipelines] = React.useState<boolean>(true);
-  const [openImportDialog, setOpenImportDialog] =
-    React.useState<boolean>(false);
-  const [open, setOpen] = useState(false);
-  const [openInVsCode, setOpenInVsCode] = useState(false);
-
-  const ddClient = useDockerDesktopClient()
-
-  function usePipelineStatus(steps: StepInfo[]) {
-    console.log(" usePipelineStatus " + JSON.stringify(steps))
-    if (steps && steps.length > 0) {
-      const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start')
-      if (runningSteps.length > 0) {
-        return (
-          <RunCircleIcon color='warning' />
-        )
-      }
-      const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error')
-      if (erroredSteps.length > 0) {
-        return (
-          <ErrorIcon color='error' />
-        )
-      }
-      const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done')
-      if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
-        return (
-          <CheckCircleIcon color='success' />
-        )
-      }
-    }
-    return <CheckCircleIcon color='success' />
-  }
-
+  const pipelineSteps = new Map<string, StepInfo[]>();
   function refreshData(
     rowId: string,
     pipelinePath: string,
     pipelineName: string,
     pipelineFile: string,
     status: string
-  ) {
-    const pipelineFQN = utils.pipelineFQN(pipelinePath, pipelineName);
-    const steps = stepContainers.get(pipelineFQN);
-
-    console.log("Refresh Data " + pipelineFQN + " Steps " + JSON.stringify(steps))
-
+  ): utils.RowData {
     return {
       id: rowId,
       pipelineName,
       pipelinePath,
       pipelineFile,
       status,
-      steps
+      steps: []
     }
   }
+
+  const context = useContext(MyContext);
+  const [rows, setRows] = useState([]);
+  const [pipelines, setPipelines] = useState([]);
+  const [reloadTable, setReloadTable] = useState<boolean>(false);
+  const [loadingPipelines, setLoadingPipelines] = useState<boolean>(true);
+  const [openImportDialog, setOpenImportDialog] =
+    useState<boolean>(false);
+  const [open, setOpen] = useState(false);
+
+  const ddClient = utils.getDockerDesktopClient();
 
   useEffect(() => {
     const loadPipelines = async () => {
@@ -113,14 +66,79 @@ export function App() {
   useEffect(() => {
     const rows = [];
     pipelines.map(v => {
-      rows.push(refreshData(v.id, v.pipelinePath, v.pipelineName?.replace(/[\n\r]/g, ''),v.pipelineFile, v?.Status))
+      rows.push(refreshData(v.id, v.pipelinePath, v.pipelineName?.replace(/[\n\r]/g, ''), v.pipelineFile, v?.Status))
     });
     setRows(rows);
-  }, [pipelines, reloadSteps]);
+  }, [pipelines]);
 
-  useEffect(() => {
-    console.log("Gathering containers for the pipelines...")
-    //TODO gather all running containers for this pipeline query by labels
+
+  function stepper(steps, action) {
+    switch (action.type) {
+      case "add": {
+        const stepInfo = action.stepInfo;
+        const pipelineFQN = action.actor;
+        const stepName = stepInfo.stepName;
+        let newSteps = [stepInfo]
+        if (steps.has(pipelineFQN)) {
+          const oldSteps = steps.get(pipelineFQN)
+          newSteps = _.unionBy(newSteps, oldSteps, (o) => o.stepName === stepName)
+        }
+        steps.set(pipelineFQN, newSteps)
+        console.log("Added::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
+        break;
+      }
+      case "update": {
+        const stepInfo = action.stepInfo as utils.StepInfo;
+        const stepContainerId = stepInfo.stepContainerId;
+        const stepName = stepInfo.stepName;
+        const stepImage = stepInfo.stepImage;
+        const pipelineFQN = action.actor;
+        if (steps.has(pipelineFQN)) {
+          const tempSteps = steps.get(pipelineFQN)
+          const i = _.findIndex(steps, { stepContainerId });
+          steps[i] = {
+            stepContainerId,
+            pipelineFQN,
+            stepName,
+            stepImage,
+            status: action.exitCode === "0" ? "done" : "error"
+          };
+          steps.set(pipelineFQN, tempSteps)
+          console.log("Updated::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
+        }
+        break;
+      }
+      case "delete": {
+        const stepInfo = action.stepInfo as utils.StepInfo;
+        const stepContainerId = stepInfo.stepContainerId;
+        const stepName = stepInfo.stepName;
+        const stepImage = stepInfo.stepImage;
+        const pipelineFQN = action.actor;
+        if (steps.has(pipelineFQN)) {
+          const tempSteps = steps.get(pipelineFQN)
+          const i = _.findIndex(steps, { stepContainerId });
+          steps[i] = {
+            stepContainerId,
+            pipelineFQN,
+            stepName,
+            stepImage,
+            status: "destroy"
+          };
+          steps.set(pipelineFQN, tempSteps)
+          console.log("Destroyed::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
+        }
+        break;
+      }
+    }
+  }
+
+  function containerListener() {
+    const [steps, dispatch] = useReducer(stepper, pipelineSteps, (o => {
+      o?.clear();
+    }));
+
+    console.log("Containers for the Pipelines:" + JSON.stringify(steps))
+
     const process = ddClient.docker.cli.exec(
       'events',
       [
@@ -164,14 +182,11 @@ export function App() {
                     stepImage,
                     status: "start"
                   }
-                  let newSteps = [stepInfo]
-                  if (stepContainers.has(pipelineFQN)) {
-                    const oldSteps = stepContainers.get(pipelineFQN)
-                    newSteps = _.unionBy(newSteps, oldSteps, (o) => o.stepName === stepName)
-                  }
-                  stepContainers.set(pipelineFQN, newSteps)
-                  console.log("Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                  setReloadSteps(!reloadSteps)
+                  dispatch({
+                    stepInfo,
+                    actor: pipelineFQN,
+                    type: "add"
+                  })
                 }
                 break;
               }
@@ -186,20 +201,20 @@ export function App() {
                 const stepName = event.Actor.Attributes["io.drone.step.name"];
                 const stepImage = event.Actor.Attributes["image"];
                 if (pipelineFQN && stepName) {
-                  if (stepContainers.has(pipelineFQN)) {
-                    const steps = stepContainers.get(pipelineFQN)
-                    const i = _.findIndex(steps, { stepContainerId });
-                    steps[i] = {
-                      stepContainerId,
-                      pipelineFQN,
-                      stepName,
-                      stepImage,
-                      status: exitCode === "0" ? "done" : "error"
-                    };
-                    stepContainers.set(pipelineFQN, steps)
-                    console.log("Updated Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                    setReloadSteps(!reloadSteps)
+                  const stepInfo: StepInfo = {
+                    stepContainerId,
+                    pipelineFQN,
+                    stepName,
+                    stepImage,
+                    status: "start"
                   }
+                  dispatch({
+                    stepInfo,
+                    actor: pipelineFQN,
+                    exitCode,
+                    type: "update"
+                  })
+
                 }
                 break;
               }
@@ -210,21 +225,18 @@ export function App() {
                 const stepName = event.Actor.Attributes["io.drone.step.name"];
                 const stepImage = event.Actor.Attributes["image"];
                 if (pipelineFQN && stepName) {
-                  if (stepContainers.has(pipelineFQN)) {
-                    const steps = stepContainers.get(pipelineFQN)
-                    const i = _.findIndex(steps, { stepContainerId });
-                    steps[i] = {
-                      stepContainerId,
-                      pipelineFQN,
-                      stepName,
-                      stepImage,
-                      status: "destroy"
-                    };
-                    stepContainers.set(pipelineFQN, steps)
-                    console.log("Updated Steps for " + pipelineFQN + " " + JSON.stringify(stepContainers.get(pipelineFQN)))
-                    setReloadTable(!reloadTable);
-                    setReloadSteps(!reloadSteps);
+                  const stepInfo: StepInfo = {
+                    stepContainerId,
+                    pipelineFQN,
+                    stepName,
+                    stepImage,
+                    status: "start"
                   }
+                  dispatch({
+                    stepInfo,
+                    actor: pipelineFQN,
+                    type: "delete"
+                  })
                 }
                 break;
               }
@@ -241,133 +253,10 @@ export function App() {
     return () => {
       process.close();
     };
-  }, [pipelines]);
+  };
 
-  function Step(props: { row: StepInfo }) {
-    const { row } = props
-    console.log("Adding Steps " + JSON.stringify(row))
-
-    const handleStepLogs = (step: StepInfo) => {
-      console.log("Handle Step Logs for step %", JSON.stringify(step));
-      const process = ddClient.docker.cli.exec(
-        'logs',
-        [
-          "--details",
-          "--follow",
-          step.stepContainerId
-        ],
-        {
-          stream: {
-            splitOutputLines: true,
-            onOutput(data) {
-              if (data.stdout) {
-                console.error(data.stdout);
-              } else {
-                console.log(data.stderr);
-              }
-            },
-            onError(error) {
-              console.error(error);
-            },
-            onClose(exitCode) {
-              console.log("onClose with exit code " + exitCode);
-            }
-          }
-        }
-      );
-
-      return () => {
-        process.close();
-      }
-    }
-
-    return (
-      <Fragment>
-        <TableRow key={row.stepContainerId} sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
-          <TableCell>{row.stepName}</TableCell>
-          <TableCell>{row.stepImage} </TableCell>
-          <TableCell>
-            {row.status === "done" && <CheckCircleIcon color='success' />}
-            {row.status === "start" && <RunCircleIcon color='warning' />}
-            {row.status === "error" && <ErrorIcon color='error' />}
-            {row.status === "destroy" && <RemoveDoneIcon color="info" />}
-          </TableCell>
-          <TableCell>
-            {row.status !== "destroy" && <IconButton color="primary"
-              hidden={row.status !== "destroy"}
-              onClick={() => handleStepLogs(row)} >
-              <ArticleIcon />
-            </IconButton>
-            }
-          </TableCell>
-        </TableRow>
-      </Fragment>
-    )
-  }
-
-  function Row(props: { row: ReturnType<typeof refreshData> }) {
-    const { row } = props;
-
-    const handleOpenInVsCode = (pipelinePath: string) => {
-      console.log(`Open ${pipelinePath} in vscode`);
-    }
-    return (
-      <Fragment>
-        <TableRow sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
-          <TableCell>
-            <IconButton
-              aria-label="expand row"
-              size="small"
-              onClick={() => setOpen(!open)}
-            >
-              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-            </IconButton>
-          </TableCell>
-          <TableCell component="th" scope="row">
-            {row.pipelineName}
-          </TableCell>
-          <TableCell component="th" scope="row">
-            {row.steps && usePipelineStatus(row.steps)}
-          </TableCell>
-          <TableCell>
-            <IconButton
-              aria-label="edit in vscode"
-              color="primary"
-              href={utils.vscodeURI(row.pipelinePath)}>
-              <img src="/images/vscode.png" width="24"/>
-            </IconButton>
-          </TableCell>
-        </TableRow>
-        {row.steps && <TableRow sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
-            <Collapse in={open} timeout="auto" unmountOnExit>
-              <Box>
-                <Typography variant="h6" gutterBottom component="div">
-                  Steps
-                </Typography>
-                <Table size="small" aria-label="steps">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Name</TableCell>
-                      <TableCell>Container</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {row.steps && row.steps.map((step) => (
-                      <Step key={step.stepContainerId} row={step} />
-                    ))}
-                  </TableBody>
-                </Table>
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-        }
-      </Fragment>
-    )
-  }
+  //start to listen to containers that are started/stopped/destroyed
+  useCallback(containerListener, [rows])
 
   /* Handlers */
   const handleImportPipeline = () => {
@@ -382,11 +271,11 @@ export function App() {
 
   return (
     <>
-      <Typography variant="h3">Drone Pipelines</Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-        Do Continuos Integrations(CI) on your laptop.
-      </Typography>
       <Stack direction="column" alignItems="start" spacing={2} sx={{ mt: 4 }}>
+        <Typography variant="h3">Drone Pipelines</Typography>
+        <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
+          Do Continuos Integrations(CI) on your laptop.
+        </Typography>
         <Button
           variant="contained"
           onClick={handleImportPipeline}
@@ -394,18 +283,18 @@ export function App() {
           Add Pipeline
         </Button>
         <TableContainer component={Paper}>
-          <Table aria-label="collapsible table">
+          <Table aria-label="pipelines list">
             <TableHead>
               <TableRow>
-                <TableCell />
-                <TableCell>Name</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell component="th" />
+                <TableCell component="th">Name</TableCell>
+                <TableCell component="th">Status</TableCell>
+                <TableCell component="th">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {rows.map((row) => (
-                <Row key={row.name} row={row} />
+                <Row key={row.id} row={row} />
               ))}
             </TableBody>
           </Table>

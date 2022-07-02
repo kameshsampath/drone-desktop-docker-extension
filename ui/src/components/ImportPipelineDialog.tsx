@@ -15,6 +15,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CancelIcon from '@mui/icons-material/Cancel';
 
 import { MyContext } from "../index";
+import * as _ from 'lodash';
 
 const client = createDockerDesktopClient();
 
@@ -41,7 +42,11 @@ export default function ImportDialog({ ...props }) {
       console.log("Save Response %s", JSON.stringify(pipelines))
 
       if (pipelines) {
-        context.store.pipelines = pipelines
+        if (context.store.pipelines) {
+          _.unionBy(pipelines, context.store.pipelines, 'id');
+        } else {
+          context.store.pipelines = pipelines
+        }
         ddClient.desktopUI.toast.success(
           `Successfully imported pipelines`
         );
@@ -79,8 +84,6 @@ export default function ImportDialog({ ...props }) {
       console.log(err)
     }
   };
-
-
 
   return (
     <Dialog open={props.open} onClose={props.onClose}>
