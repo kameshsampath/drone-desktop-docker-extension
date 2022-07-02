@@ -9,9 +9,10 @@ import {
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import { createDockerDesktopClient } from "@docker/extension-api-client";
+import SearchIcon from '@mui/icons-material/Search';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 import { MyContext } from "../index";
 
@@ -28,52 +29,16 @@ export default function ImportDialog({ ...props }) {
 
   const context = useContext(MyContext);
 
-  const [path, setPath] = React.useState<string>("");
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
-  const selectDronePipelineFile = async () => {
-    const result = await ddClient.desktopUI.dialog
-      .showOpenDialog({
-        properties: ["openDirectory"],
-        message: "Select base directory to discover pipelines"
-      });
-      if (result.canceled) {
-        return;
-      }
-    
-    const pipelineNameOut = await ddClient.extension.host.cli.exec("yq", ["-path", result.filePaths[0]]) 
-    console.log(" Pipeline find %s",pipelineNameOut)
-    const droneFiles = []
-    console.log("Drone files %s",droneFiles)
-  };
-
-  const savePipelines = async () => {
+  const savePipelines = async (droneFiles) => {
     setActionInProgress(true);
 
     try {
-      const paths = path.split("/")
-      //console.log("Paths %s", paths)
-      const pipelinePaths = paths.splice(0, paths.length - 1)
-      const pipelinePath = pipelinePaths.join("/");
-      //TODO choose the right seperator
-      //console.log("pipelinePath %s ", pipelinePath)
-      const pipelineNameOut = await ddClient.extension.host.cli.exec("yq", ["-r ", "'.name'", path])
+      const pipelines = await ddClient.extension.vm.service.post("/pipeline", droneFiles);
 
-      if (pipelineNameOut.stderr !== "") {
-        ddClient.desktopUI.toast.error(pipelineNameOut.stderr);
-        return;
-      }
-
-      const pipelineName = `${pipelinePaths[pipelinePaths.length - 1]}/${pipelineNameOut.stdout}`
-      //console.log("Pipeline Name %s",pipelineName)
-
-      const pipelines = await ddClient.extension.vm.service.post("/pipeline", [{
-        "name": pipelineName,
-        "path": pipelinePath
-      }]);
-
-      console.log("OUTPUT %s", JSON.stringify(pipelines))
+      console.log("Save Response %s", JSON.stringify(pipelines))
 
       if (pipelines) {
         context.store.pipelines = pipelines
@@ -85,18 +50,41 @@ export default function ImportDialog({ ...props }) {
     } catch (error) {
       console.log(error)
       ddClient.desktopUI.toast.error(
-        `Error importing pipeline  ${path} Exit code: ${error.code}`
+        `Error importing pipelines : ${error}`
       );
     } finally {
       setActionInProgress(false);
-      setPath("");
       props.onClose();
     }
   };
+  const selectDronePipelineFile = async () => {
+    const result = await ddClient.desktopUI.dialog
+      .showOpenDialog({
+        properties: ["openDirectory"],
+        message: "Select base directory to discover pipelines"
+      });
+    if (result.canceled) {
+      return;
+    }
+
+    try {
+      const cmd = await ddClient.extension.host.cli.exec("pipelines-finder", ["-path", result.filePaths[0]])
+      console.log(" Pipeline find %s", JSON.stringify(cmd))
+      if (cmd.stdout) {
+        const droneFiles = JSON.parse(cmd.stdout)
+        console.log("Drone files %s", droneFiles.length)
+        savePipelines(droneFiles)
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  };
+
+
 
   return (
     <Dialog open={props.open} onClose={props.onClose}>
-      <DialogTitle>Import and Run Pipeline</DialogTitle>
+      <DialogTitle>Import Pipelines</DialogTitle>
       <DialogContent>
         <Backdrop
           sx={{
@@ -107,37 +95,31 @@ export default function ImportDialog({ ...props }) {
         >
           <CircularProgress color="info" />
         </Backdrop>
-        <DialogContentText>
-          Imports a Drone pipeline and runs it.
-        </DialogContentText>
 
         <Grid container direction="column" spacing={2}>
           <Grid item>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-              Choose a .drone.yml to import and run, e.g. .drone.yml
+              Choose base directory to search drone pipelines
             </Typography>
-          </Grid>
-          <Grid item>
-            <Button variant="contained" onClick={selectDronePipelineFile}>
-              Select file
-            </Button>
           </Grid>
         </Grid>
       </DialogContent>
       <DialogActions>
         <Button
+          variant="contained"
           onClick={() => {
-            setPath("");
             props.onClose();
           }}
+          endIcon={<CancelIcon />}
         >
           Cancel
         </Button>
         <Button
-          onClick={savePipelines}
-          disabled={path === ""}
+          variant="contained"
+          onClick={selectDronePipelineFile}
+          endIcon={<SearchIcon />}
         >
-          Import
+          Search
         </Button>
       </DialogActions>
     </Dialog>

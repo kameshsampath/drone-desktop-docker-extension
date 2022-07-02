@@ -7,7 +7,7 @@ RUN go install github.com/goreleaser/goreleaser@latest
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    make bin
+    make bin-all
 
 FROM --platform=$BUILDPLATFORM node:17.7-alpine3.14 AS client-builder
 WORKDIR /ui
@@ -45,15 +45,16 @@ LABEL org.opencontainers.image.title="drone-desktop" \
     com.docker.extension.additional-urls="" \
     com.docker.extension.changelog=""
 
-#Darwin Tools -- Harded coded now
+#Darwin Tools -- Arch Harded coded now
 COPY --from=dl /tools/darwin/arm64/yq /usr/local/bin/yq
-COPY --from=builder /backend/dist/pipelines-finder /usr/local/bin/pipelines-finder
+COPY --from=builder /backend/dist/pipelines-finder_darwin_arm64/pipelines-finder /usr/local/bin/pipelines-finder
 
 # Linux Tools
 
 #Windows Tools
 
-COPY --from=builder /backend/dist/backend /
+# Use Target Arch
+COPY --from=builder /backend/dist/backend_linux_arm64/backend /
 COPY docker-compose.yaml .
 COPY metadata.json .
 COPY logo.svg .

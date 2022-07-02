@@ -14,7 +14,7 @@ bin:	## Build binaries
 	goreleaser build --snapshot --rm-dist --single-target --debug
 
 bin-all:	## Build binaries for all targetted architectures
-	goreleaser build --snapsho
+	goreleaser build --snapshot --rm-dist
 
 build-extension: ## Build service image to be deployed as a desktop extension
 	docker build --tag=$(IMAGE):$(TAG) .

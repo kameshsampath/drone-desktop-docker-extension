@@ -10,7 +10,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import RunCircleIcon from '@mui/icons-material/RunCircle';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-import EditIcon from '@mui/icons-material/Edit';
 
 import * as _ from 'lodash';
 
@@ -70,6 +69,7 @@ export function App() {
     rowId: string,
     pipelinePath: string,
     pipelineName: string,
+    pipelineFile: string,
     status: string
   ) {
     const pipelineFQN = utils.pipelineFQN(pipelinePath, pipelineName);
@@ -81,6 +81,7 @@ export function App() {
       id: rowId,
       pipelineName,
       pipelinePath,
+      pipelineFile,
       status,
       steps
     }
@@ -112,7 +113,7 @@ export function App() {
   useEffect(() => {
     const rows = [];
     pipelines.map(v => {
-      rows.push(refreshData(v.id, v.path, v.name?.replace(/[\n\r]/g, ''), v?.Status))
+      rows.push(refreshData(v.id, v.pipelinePath, v.pipelineName?.replace(/[\n\r]/g, ''),v.pipelineFile, v?.Status))
     });
     setRows(rows);
   }, [pipelines, reloadSteps]);
@@ -279,7 +280,6 @@ export function App() {
         process.close();
       }
     }
-
 
     return (
       <Fragment>

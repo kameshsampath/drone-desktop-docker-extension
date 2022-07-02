@@ -6,7 +6,6 @@ builds:
   - id: backend
     main: cmd/backend/main.go
     binary: backend
-    no_unique_dist_dir: true
     env:
       - CGO_ENABLED=0
     goos:
@@ -18,10 +17,12 @@ builds:
       - -mod=vendor
     ldflags:
       - -s -w -X main.build={{.Version}}
+    goarch:
+      - amd64
+      - arm64
   - id: pipelines-finder
     main: cmd/pipelines-finder/main.go
     binary: pipelines-finder
-    no_unique_dist_dir: true
     env:
       - CGO_ENABLED=0
     goos:
@@ -33,6 +34,9 @@ builds:
       - -mod=vendor
     ldflags:
       - -s -w -X main.build={{.Version}}
+    goarch:
+      - amd64
+      - arm64
 archives:
   - files:
       - LICENSE
