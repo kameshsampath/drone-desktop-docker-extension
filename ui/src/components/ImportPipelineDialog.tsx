@@ -15,8 +15,6 @@ import { createDockerDesktopClient } from "@docker/extension-api-client";
 
 import { MyContext } from "../index";
 
-const filehound = window.filehound
-
 const client = createDockerDesktopClient();
 
 
@@ -29,28 +27,25 @@ export default function ImportDialog({ ...props }) {
   const ddClient = useDockerDesktopClient();
 
   const context = useContext(MyContext);
-  const fileName = `.drone.yml`;
 
   const [path, setPath] = React.useState<string>("");
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
 
-  const selectDronePipelineFile = () => {
-    ddClient.desktopUI.dialog
+  const selectDronePipelineFile = async () => {
+    const result = await ddClient.desktopUI.dialog
       .showOpenDialog({
-        properties: ["openFile", "showHiddenFiles"],
-        filters: [{ name: ".drone.yml", extensions: ["drone.yml"] }], // should contain extension without wildcards or dots
-      })
-      .then((result) => {
-        if (result.canceled) {
-          return;
-        }
-        const droneFiles = filehound.create()
-        .paths(...result.filePaths)
-        .ext('.drone.yml')
-        .findSync();
-        console.log("Drone files %s",droneFiles)
+        properties: ["openDirectory"],
+        message: "Select base directory to discover pipelines"
       });
+      if (result.canceled) {
+        return;
+      }
+    
+    const pipelineNameOut = await ddClient.extension.host.cli.exec("yq", ["-path", result.filePaths[0]]) 
+    console.log(" Pipeline find %s",pipelineNameOut)
+    const droneFiles = []
+    console.log("Drone files %s",droneFiles)
   };
 
   const savePipelines = async () => {

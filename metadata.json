@@ -22,6 +22,9 @@
         "darwin": [
           {
             "path": "/usr/local/bin/yq"
+          },
+          {
+            "path": "/usr/local/bin/pipelines-finder"
           }
         ]
       }

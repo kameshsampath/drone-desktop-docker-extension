@@ -10,14 +10,11 @@ GO_BUILD=$(STATIC_FLAGS) go build -trimpath -ldflags=$(LDFLAGS)
 INFO_COLOR = \033[0;36m
 NO_COLOR   = \033[m
 
-test:
-	@echo "$(INFO_COLOR)Testing...$(NO_COLOR)"
-	go test $(go list ./... | grep -v /vendor/ | grep -v /ui/)
+bin:	## Build binaries
+	goreleaser build --snapshot --rm-dist --single-target --debug
 
-bin: ## Build the binary for the current platform
-	@echo "$(INFO_COLOR)Building...$(NO_COLOR)"
-	$(GO_BUILD) -o bin/service ./vm
-	$(GO_BUILD) -o bin/pipelines-finder ./cmd/pipelines-finder
+bin-all:	## Build binaries for all targetted architectures
+	goreleaser build --snapsho
 
 build-extension: ## Build service image to be deployed as a desktop extension
 	docker build --tag=$(IMAGE):$(TAG) .
@@ -38,4 +35,20 @@ help: ## Show this help
 	@echo Please specify a build target. The choices are:
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "$(INFO_COLOR)%-30s$(NO_COLOR) %s\n", $$1, $$2}'
 
-.PHONY: bin extension push-extension help
+tidy:	## Runs go mod tidy
+	go mod tidy
+	
+test:	## Runs the test
+	./hack/test.sh
+
+vendor:	## Vendoring
+	go mod vendor
+
+lint:	## Run lint on the project
+	golangci-lint run
+
+clean:	## Cleans output
+	go clean
+	rm -rf dist
+
+.PHONY: bin extension push-extension help	tidy	test	vendor	lint	clean

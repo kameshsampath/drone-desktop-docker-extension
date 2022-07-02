@@ -1,11 +1,9 @@
-FROM golang:1.17-alpine AS builder
+FROM golang:1.18-alpine AS builder
 ENV CGO_ENABLED=0
-RUN apk add --update make
+RUN apk add --update make git
 WORKDIR /backend
 COPY go.* .
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    go mod download
+RUN go install github.com/goreleaser/goreleaser@latest 
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
@@ -47,16 +45,18 @@ LABEL org.opencontainers.image.title="drone-desktop" \
     com.docker.extension.additional-urls="" \
     com.docker.extension.changelog=""
 
-# Download Darwin Tools -- Harded coded now
+#Darwin Tools -- Harded coded now
 COPY --from=dl /tools/darwin/arm64/yq /usr/local/bin/yq
+COPY --from=builder /backend/dist/pipelines-finder /usr/local/bin/pipelines-finder
 
-# Download Linux Tools
+# Linux Tools
 
-# Download Windows Tools
-COPY --from=builder /backend/bin/service /
+#Windows Tools
+
+COPY --from=builder /backend/dist/backend /
 COPY docker-compose.yaml .
 COPY metadata.json .
 COPY logo.svg .
 COPY --from=client-builder /ui/build ui
 RUN mkdir -p /data
-CMD /service -socket /run/guest-services/extension-drone-desktop.sock
+CMD /backend -socket /run/guest-services/extension-drone-desktop.sock

@@ -6,12 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/kameshsampath/drone-desktop-docker-extension/pkg/ignore"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
