@@ -6,50 +6,29 @@ import { Fragment, useState } from "react";
 import { pipelineDisplayName } from "../utils";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ErrorIcon from '@mui/icons-material/Error';
-import RunCircleIcon from '@mui/icons-material/RunCircle';
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
-import * as _ from 'lodash';
-import * as utils from "../utils";
-
-import { MyContext } from '..'
 import Collapse from "@mui/material/Collapse";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Table from "@mui/material/Table";
 import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
+
+
 import { Step } from "./PipelineStep";
+import { PipelineStatus } from "./PipelineStatus";
 
-export const Row = (props: { row: utils.RowData }) => {
-	const { row } = props;
+import * as _ from 'lodash';
+import * as utils from "../utils";
+import { EditInVSCode } from "./VSCodeEdit";
+
+interface RowProps {
+	row: utils.RowData
+	pipelineStatus: string
+}
+
+export const Row = (props: RowProps) => {
+	const { row, pipelineStatus } = props;
 	const [open, setOpen] = useState(false);
-
-	function usePipelineStatus(steps: utils.StepInfo[]) {
-		console.log(" usePipelineStatus " + JSON.stringify(steps));
-		if (steps && steps.length > 0) {
-			const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start')
-			if (runningSteps.length > 0) {
-				return (
-					<RunCircleIcon color='warning' />
-				)
-			}
-			const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error')
-			if (erroredSteps.length > 0) {
-				return (
-					<ErrorIcon color='error' />
-				)
-			}
-			const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done')
-			if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
-				return (
-					<CheckCircleIcon color='success' />
-				)
-			}
-		}
-		return <QuestionMarkIcon color='action' />
-	}
 
 	return (
 		<Fragment>
@@ -69,17 +48,10 @@ export const Row = (props: { row: utils.RowData }) => {
 					</TableCell>
 				</Tooltip>
 				<TableCell component="th" scope="row">
-					{row.steps && usePipelineStatus(row.steps)}
+					<PipelineStatus status={pipelineStatus} />
 				</TableCell>
 				<TableCell>
-					<Tooltip title="Open in VS Code">
-						<IconButton
-							aria-label="edit in vscode"
-							color="primary"
-							href={utils.vscodeURI(row.pipelinePath)}>
-							<img src="/images/vscode.png" width="24" />
-						</IconButton>
-					</Tooltip>
+					<EditInVSCode workspacePath={row.pipelinePath} />
 				</TableCell>
 			</TableRow>
 			{

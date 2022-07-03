@@ -19,7 +19,6 @@ import * as _ from 'lodash';
 
 const client = createDockerDesktopClient();
 
-
 function useDockerDesktopClient() {
   return client;
 }

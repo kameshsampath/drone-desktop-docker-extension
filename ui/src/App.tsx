@@ -6,29 +6,18 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import * as _ from 'lodash';
 
 import { MyContext } from '.'
-import * as utils from './utils'
-import { StepInfo } from './utils'
+import {
+  StepInfo,
+  getPipelineStatus,
+  getDockerDesktopClient,
+  md5,
+  Event,
+  EventStatus
+}
+  from './utils'
 import { Row } from './components/Pipeline';
 
 export function App() {
-  const pipelineSteps = new Map<string, StepInfo[]>();
-  function refreshData(
-    rowId: string,
-    pipelinePath: string,
-    pipelineName: string,
-    pipelineFile: string,
-    status: string
-  ): utils.RowData {
-    return {
-      id: rowId,
-      pipelineName,
-      pipelinePath,
-      pipelineFile,
-      status,
-      steps: []
-    }
-  }
-
   const context = useContext(MyContext);
   const [rows, setRows] = useState([]);
   const [pipelines, setPipelines] = useState([]);
@@ -36,14 +25,12 @@ export function App() {
   const [loadingPipelines, setLoadingPipelines] = useState<boolean>(true);
   const [openImportDialog, setOpenImportDialog] =
     useState<boolean>(false);
-  const [open, setOpen] = useState(false);
 
-  const ddClient = utils.getDockerDesktopClient();
+  const ddClient = getDockerDesktopClient();
 
   useEffect(() => {
     const loadPipelines = async () => {
       try {
-        console.log("Loading Pipelines ...")
         if (context.store.pipelines.length === 0) {
           setLoadingPipelines(true)
           const output = await ddClient.extension.vm.service.get("/pipelines");
@@ -66,18 +53,32 @@ export function App() {
   useEffect(() => {
     const rows = [];
     pipelines.map(v => {
-      rows.push(refreshData(v.id, v.pipelinePath, v.pipelineName?.replace(/[\n\r]/g, ''), v.pipelineFile, v?.Status))
+      rows.push({
+        id: v.id,
+        pipelinePath: v.pipelinePath,
+        pipelineName: v.pipelineName?.replace(/[\n\r]/g, ''),
+        pipelineFile: v.pipelineFile,
+        status: v?.Status
+      })
     });
     setRows(rows);
   }, [pipelines]);
 
 
+  function refreshRow(rowId: string) {
+    console.log("Refresh Steps for pipeline " + rowId);
+    // update the corresponding row 
+    _.find(rows, (r) => {
+      console.log("Refresh Steps for row " + JSON.stringify(r));
+    });
+  }
+
   function stepper(steps, action) {
+    const stepInfo = action.stepInfo
+    const { stepContainerId, pipelineFQN, stepName, stepImage } = stepInfo
+    const pipelineID = action.actor;
     switch (action.type) {
       case "add": {
-        const stepInfo = action.stepInfo;
-        const pipelineFQN = action.actor;
-        const stepName = stepInfo.stepName;
         let newSteps = [stepInfo]
         if (steps.has(pipelineFQN)) {
           const oldSteps = steps.get(pipelineFQN)
@@ -85,14 +86,10 @@ export function App() {
         }
         steps.set(pipelineFQN, newSteps)
         console.log("Added::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
+        refreshRow(pipelineID);
         break;
       }
       case "update": {
-        const stepInfo = action.stepInfo as utils.StepInfo;
-        const stepContainerId = stepInfo.stepContainerId;
-        const stepName = stepInfo.stepName;
-        const stepImage = stepInfo.stepImage;
-        const pipelineFQN = action.actor;
         if (steps.has(pipelineFQN)) {
           const tempSteps = steps.get(pipelineFQN)
           const i = _.findIndex(steps, { stepContainerId });
@@ -106,14 +103,10 @@ export function App() {
           steps.set(pipelineFQN, tempSteps)
           console.log("Updated::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
         }
+        refreshRow(pipelineID);
         break;
       }
       case "delete": {
-        const stepInfo = action.stepInfo as utils.StepInfo;
-        const stepContainerId = stepInfo.stepContainerId;
-        const stepName = stepInfo.stepName;
-        const stepImage = stepInfo.stepImage;
-        const pipelineFQN = action.actor;
         if (steps.has(pipelineFQN)) {
           const tempSteps = steps.get(pipelineFQN)
           const i = _.findIndex(steps, { stepContainerId });
@@ -127,15 +120,17 @@ export function App() {
           steps.set(pipelineFQN, tempSteps)
           console.log("Destroyed::Steps[" + pipelineFQN + "]: " + JSON.stringify(steps.get(pipelineFQN)))
         }
+        refreshRow(pipelineID);
         break;
       }
     }
   }
 
-  function containerListener() {
-    const [steps, dispatch] = useReducer(stepper, pipelineSteps, (o => {
-      o?.clear();
-    }));
+
+  const pipelineSteps = new Map<string, StepInfo[]>();
+  const [steps, dispatch] = useReducer(stepper, pipelineSteps);
+
+  function startStepListener() {
 
     console.log("Containers for the Pipelines:" + JSON.stringify(steps))
 
@@ -161,19 +156,20 @@ export function App() {
         stream: {
           splitOutputLines: true,
           async onOutput(data) {
-            const event = JSON.parse(data.stdout ?? data.stderr) as utils.Event;
-
+            const event = JSON.parse(data.stdout ?? data.stderr) as Event;
             if (!event) {
               return;
             }
 
+            const stepContainerId = event.Actor["ID"];
+            const pipelineID = md5(event.Actor.Attributes["io.drone.pipeline.dir"]);
+            const pipelineFQN = event.Actor.Attributes["io.drone.pipeline.name"];
+            const stepName = event.Actor.Attributes["io.drone.step.name"];
+            const stepImage = event.Actor.Attributes["image"];
+
             switch (event.status) {
-              case utils.EventStatus.START: {
+              case EventStatus.START: {
                 console.log("START %s", JSON.stringify(event.Actor))
-                const stepContainerId = event.Actor["ID"]
-                const pipelineFQN = event.Actor.Attributes["io.drone.pipeline.name"];
-                const stepName = event.Actor.Attributes["io.drone.step.name"];
-                const stepImage = event.Actor.Attributes["image"];
                 if (pipelineFQN && stepName) {
                   const stepInfo: StepInfo = {
                     stepContainerId,
@@ -184,33 +180,29 @@ export function App() {
                   }
                   dispatch({
                     stepInfo,
-                    actor: pipelineFQN,
+                    actor: pipelineID,
                     type: "add"
                   })
                 }
                 break;
               }
 
-              case utils.EventStatus.STOP:
-              case utils.EventStatus.DIE:
-              case utils.EventStatus.KILL: {
+              case EventStatus.STOP:
+              case EventStatus.DIE:
+              case EventStatus.KILL: {
                 console.log("STOP/DIE/KILL %s", JSON.stringify(event))
                 const exitCode = event.Actor.Attributes["exitCode"];
-                const stepContainerId = event.Actor["ID"]
-                const pipelineFQN = event.Actor.Attributes["io.drone.pipeline.name"];
-                const stepName = event.Actor.Attributes["io.drone.step.name"];
-                const stepImage = event.Actor.Attributes["image"];
                 if (pipelineFQN && stepName) {
                   const stepInfo: StepInfo = {
                     stepContainerId,
                     pipelineFQN,
                     stepName,
                     stepImage,
-                    status: "start"
+                    status: "update"
                   }
                   dispatch({
                     stepInfo,
-                    actor: pipelineFQN,
+                    actor: pipelineID,
                     exitCode,
                     type: "update"
                   })
@@ -218,23 +210,19 @@ export function App() {
                 }
                 break;
               }
-              case utils.EventStatus.DESTROY: {
+              case EventStatus.DESTROY: {
                 console.log("DESTROY %s", JSON.stringify(event))
-                const stepContainerId = event.Actor["ID"]
-                const pipelineFQN = event.Actor.Attributes["io.drone.pipeline.name"];
-                const stepName = event.Actor.Attributes["io.drone.step.name"];
-                const stepImage = event.Actor.Attributes["image"];
                 if (pipelineFQN && stepName) {
                   const stepInfo: StepInfo = {
                     stepContainerId,
                     pipelineFQN,
                     stepName,
                     stepImage,
-                    status: "start"
+                    status: "destroy"
                   }
                   dispatch({
                     stepInfo,
-                    actor: pipelineFQN,
+                    actor: pipelineID,
                     type: "delete"
                   })
                 }
@@ -255,8 +243,7 @@ export function App() {
     };
   };
 
-  //start to listen to containers that are started/stopped/destroyed
-  useCallback(containerListener, [rows])
+  useCallback(StartContainerListener, [rows])
 
   /* Handlers */
   const handleImportPipeline = () => {
@@ -274,7 +261,7 @@ export function App() {
       <Stack direction="column" alignItems="start" spacing={2} sx={{ mt: 4 }}>
         <Typography variant="h3">Drone Pipelines</Typography>
         <Typography variant="body1" color="text.secondary" sx={{ mt: 2 }}>
-          Do Continuos Integrations(CI) on your laptop.
+          Do Continuous Integrations (CI) on your computer.
         </Typography>
         <Button
           variant="contained"
@@ -293,9 +280,14 @@ export function App() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => (
-                <Row key={row.id} row={row} />
-              ))}
+              {rows.map((row) => {
+                return (
+                  <Row
+                    key={row.id}
+                    row={row}
+                    pipelineStatus={getPipelineStatus(row.steps)} />
+                )
+              })}
             </TableBody>
           </Table>
           {openImportDialog && (
