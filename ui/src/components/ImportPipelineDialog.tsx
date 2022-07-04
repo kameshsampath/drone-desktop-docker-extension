@@ -13,8 +13,6 @@ import { loadPipelines } from '../features/pipelinesSlice';
 import { Pipeline } from '../features/types';
 
 export default function ImportDialog({ ...props }) {
-  console.log('Add Pipeline component rendered.');
-
   const ddClient = getDockerDesktopClient();
   const dispatch = useAppDispatch();
 

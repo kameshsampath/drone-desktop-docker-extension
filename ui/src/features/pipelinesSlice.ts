@@ -34,7 +34,7 @@ const computePipelineStatus = (state, pipelineId) => {
 };
 
 export const importPipelines = createAsyncThunk('pipelines/loadPipelines', async () => {
-  //console.log('Loading pipelines from backend');
+  console.log('Loading pipelines from backend');
   const response = (await ddClient.extension.vm.service.get('/pipelines')) as Pipeline[];
   return response;
 });
@@ -45,7 +45,7 @@ export const pipelinesSlice = createSlice({
   reducers: {
     loadPipelines: (state, action: PayloadAction<Pipeline[]>) => {
       state.status = 'loaded';
-      state.rows = rowsFromPayload(action.payload);
+      state.rows = _.unionBy(state.rows, rowsFromPayload(action.payload), 'id');
     },
     upsertSteps: (state, action: PayloadAction<StepPayload>) => {
       //console.log("Action::" + action.type + "::" + JSON.stringify(action.payload));
