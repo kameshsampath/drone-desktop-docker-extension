@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment } from 'react';
 
 import IconButton from '@mui/material/IconButton';
 import TableCell from '@mui/material/TableCell';
@@ -6,7 +6,6 @@ import TableRow from '@mui/material/TableRow';
 
 import ArticleIcon from '@mui/icons-material/Article';
 
-import * as _ from 'lodash';
 import { Step } from '../features/types';
 import { StepStatus } from './StepStatus';
 import { getDockerDesktopClient } from '../utils';

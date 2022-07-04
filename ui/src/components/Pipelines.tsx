@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Backdrop, CircularProgress, Paper, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import { Backdrop, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import { Row } from './Pipeline';
 import { upsertSteps, dataLoadStatus, importPipelines, selectRows } from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
 import { getDockerDesktopClient, md5 } from '../utils';
 import { Event, EventStatus, Step } from '../features/types';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const PipelinesTable = (props) => {
   const dispatch = useAppDispatch();
   const pipelinesStatus = useSelector(dataLoadStatus);
