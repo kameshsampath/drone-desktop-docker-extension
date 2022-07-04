@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Stack, Typography } from '@mui/material';
+import { Button, Grid, Stack, Typography } from '@mui/material';
 import ImportDialog from './components/ImportPipelineDialog';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { PipelinesTable } from './components/Pipelines';
@@ -33,13 +33,23 @@ export function App() {
         >
           Do Continuous Integrations (CI) on your computer.
         </Typography>
-        <Button
-          variant="contained"
-          onClick={handleImportPipeline}
-          endIcon={<AddCircleIcon />}
+        <Grid
+          container
+          spacing={2}
         >
-          Add Pipeline
-        </Button>
+          <Grid
+            item
+            xs={4}
+          >
+            <Button
+              variant="contained"
+              onClick={handleImportPipeline}
+              endIcon={<AddCircleIcon />}
+            >
+              Import Pipelines
+            </Button>
+          </Grid>
+        </Grid>
         <PipelinesTable />
         {openImportDialog && (
           <ImportDialog

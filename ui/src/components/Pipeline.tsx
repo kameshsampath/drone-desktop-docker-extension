@@ -16,21 +16,31 @@ import TableBody from '@mui/material/TableBody';
 import { PipelineStep } from './PipelineStep';
 import { PipelineStatus } from './PipelineStatus';
 
-import { EditInVSCode } from './VSCodeEdit';
-import { Pipeline } from '../features/types';
+import { PipelineRowActions } from './PipelineRowActions';
+import { Checkbox } from '@mui/material';
 
-interface RowProps {
-  row: Pipeline;
-  pipelineStatus: string;
-}
-
-export const Row = (props: RowProps) => {
-  const { row, pipelineStatus } = props;
+export const Row = (props) => {
+  const { labelId, row, pipelineStatus, selected, onClick } = props;
   const [open, setOpen] = useState(false);
+
+  const isSelected = (id: string) => selected.indexOf(id) !== -1;
+
+  const isItemSelected = isSelected(row.id);
 
   return (
     <Fragment>
       <TableRow sx={{ '& > *': { borderTop: 'unset', borderBottom: 'unset' } }}>
+        <TableCell padding="checkbox">
+          <Checkbox
+            color="primary"
+            checked={isItemSelected}
+            inputProps={{
+              'aria-labelledby': labelId
+            }}
+            onClick={(event) => onClick(event, row.id)}
+            role="checkbox"
+          />
+        </TableCell>
         <TableCell>
           <IconButton
             aria-label="expand row"
@@ -55,7 +65,12 @@ export const Row = (props: RowProps) => {
           <PipelineStatus status={pipelineStatus} />
         </TableCell>
         <TableCell>
-          <EditInVSCode workspacePath={row.pipelinePath} />
+          <PipelineRowActions
+            pipelineID={row.id}
+            pipelineFile={row.pipelineFile}
+            pipelineName={row.pipelineName}
+            workspacePath={row.pipelinePath}
+          />
         </TableCell>
       </TableRow>
       {row.steps && (

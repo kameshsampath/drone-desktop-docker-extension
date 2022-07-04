@@ -1,17 +1,36 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Backdrop, CircularProgress, Table, TableBody, TableCell, TableHead, TableRow } from '@mui/material';
+import {
+  Backdrop,
+  Checkbox,
+  CircularProgress,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow
+} from '@mui/material';
 import { Row } from './Pipeline';
 import { upsertSteps, dataLoadStatus, importPipelines, selectRows } from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
 import { getDockerDesktopClient, md5 } from '../utils';
 import { Event, EventStatus, Step } from '../features/types';
+import { PipelineTableToolbar } from './Toolbar';
+import { PipelinesTableHead } from './PipelinesTableHead';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const PipelinesTable = (props) => {
   const dispatch = useAppDispatch();
   const pipelinesStatus = useSelector(dataLoadStatus);
   const pipelines = useSelector(selectRows);
+
+  const [selected, setSelected] = useState<readonly string[]>([]);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [dense, setDense] = useState(false);
 
   useEffect(() => {
     if (pipelinesStatus === 'idle') {
@@ -130,6 +149,47 @@ export const PipelinesTable = (props) => {
     };
   }, []);
 
+  // Avoid a layout jump when reaching the last page with empty rows.
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - pipelines?.length) : 0;
+
+  /* Handlers */
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelecteds = pipelines?.map((n) => n.id);
+      setSelected(newSelecteds);
+      return;
+    }
+    setSelected([]);
+  };
+
+  const handleClick = (event: React.MouseEvent<unknown>, name: string) => {
+    const selectedIndex = selected.indexOf(name);
+    let newSelected: readonly string[] = [];
+
+    if (selectedIndex === -1) {
+      newSelected = newSelected.concat(selected, name);
+    } else if (selectedIndex === 0) {
+      newSelected = newSelected.concat(selected.slice(1));
+    } else if (selectedIndex === selected.length - 1) {
+      newSelected = newSelected.concat(selected.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
+    }
+
+    setSelected(newSelected);
+  };
+
+  /* End of Handlers */
   return (
     <>
       <Backdrop
@@ -141,29 +201,56 @@ export const PipelinesTable = (props) => {
       >
         <CircularProgress color="info" />
       </Backdrop>
-      <Table aria-label="pipelines list">
-        <TableHead>
-          <TableRow>
-            <TableCell component="th" />
-            <TableCell component="th">Name</TableCell>
-            <TableCell component="th">Status</TableCell>
-            <TableCell component="th">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        {pipelinesStatus === 'loaded' && (
-          <TableBody>
-            {pipelines.map((row) => {
-              return (
-                <Row
-                  key={row.id}
-                  row={row}
-                  pipelineStatus={row.status}
-                />
-              );
-            })}
-          </TableBody>
-        )}
-      </Table>
+      <Paper sx={{ width: '100%', mb: 2 }}>
+        <PipelineTableToolbar numSelected={selected.length} />
+        <TableContainer>
+          <Table
+            sx={{ minWidth: 750 }}
+            aria-labelledby="Pipleines List"
+            size={dense ? 'small' : 'medium'}
+          >
+            <PipelinesTableHead
+              numSelected={selected.length}
+              rowCount={pipelines.length}
+              onSelectAllClick={handleSelectAll}
+            />
+            {pipelinesStatus === 'loaded' && (
+              <TableBody>
+                {pipelines.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => {
+                  return (
+                    <Row
+                      labelId={`pipeline-table-checkbox-${index}`}
+                      key={row.id}
+                      row={row}
+                      selected={selected}
+                      pipelineStatus={row.status}
+                      onClick={handleClick}
+                    />
+                  );
+                })}
+                {emptyRows > 0 && (
+                  <TableRow
+                    style={{
+                      height: (dense ? 33 : 53) * emptyRows
+                    }}
+                  >
+                    <TableCell colSpan={6} />
+                  </TableRow>
+                )}
+              </TableBody>
+            )}
+          </Table>
+        </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={pipelines.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Paper>
     </>
   );
 };

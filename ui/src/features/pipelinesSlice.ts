@@ -47,6 +47,9 @@ export const pipelinesSlice = createSlice({
       state.status = 'loaded';
       state.rows = _.unionBy(state.rows, rowsFromPayload(action.payload), 'id');
     },
+    removePipeline: (state, action: PayloadAction<string>) => {
+      console.log('Deleting pipeline ' + action.payload);
+    },
     upsertSteps: (state, action: PayloadAction<StepPayload>) => {
       //console.log("Action::" + action.type + "::" + JSON.stringify(action.payload));
       const { pipelineID, step } = action.payload;
@@ -113,7 +116,7 @@ function rowsFromPayload(payload: Pipeline[]) {
   return rows;
 }
 
-export const { loadPipelines, pipelineStatus, upsertSteps, deleteSteps } = pipelinesSlice.actions;
+export const { loadPipelines, pipelineStatus, upsertSteps, deleteSteps, removePipeline } = pipelinesSlice.actions;
 
 export const selectRows = (state: RootState) => state.pipelines.rows;
 export const dataLoadStatus = (state: RootState) => state.pipelines.status;
