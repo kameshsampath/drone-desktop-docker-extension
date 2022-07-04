@@ -2,6 +2,7 @@ import { createDockerDesktopClient } from '@docker/extension-api-client'
 import { DockerDesktopClient } from '@docker/extension-api-client-types/dist/v1';
 import {Md5} from 'ts-md5/dist/md5';
 import * as _ from 'lodash';
+import {Step} from "./features/types"
 
 let client : DockerDesktopClient;
 
@@ -12,40 +13,6 @@ export function getDockerDesktopClient() {
     return client;
 }
  
-export enum EventStatus {
-    START = 'start',
-    DESTROY = 'destroy',
-    STOP = 'stop',
-    DIE = 'die',
-    KILL = 'kill',
-}
-  
-export interface Event {
-    status: EventStatus;
-    id: string;
-    from: string;
-    Actor: {
-        Attributes: {
-        [key: string]: string;
-        };
-    };
-}
-
-export interface StepInfo {
-    stepContainerId: string,
-    pipelineFQN: string,
-    stepName: string,
-    stepImage: string,
-    status: string
-}
-export interface RowData {
-    id: string,
-    pipelineName: string,
-    pipelinePath: string,
-    pipelineFile: string,
-    status: string, 
-    steps: StepInfo[]
-}
 
 export function pipelineFQN(pipelinePath:string, pipelineName:string):string {
     if (pipelineName.indexOf("/") != -1 ){
@@ -67,7 +34,7 @@ export function md5(str): string {
     return Md5.hashStr(str);
 }
 
-export function getPipelineStatus(steps: StepInfo[]):string {
+export function getPipelineStatus(steps: Step[]):string {
     console.log("getPipelineStatus " + JSON.stringify(steps));
     
     if (steps && steps.length > 0) {

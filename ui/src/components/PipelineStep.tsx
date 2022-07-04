@@ -7,16 +7,17 @@ import TableRow from "@mui/material/TableRow";
 import ArticleIcon from '@mui/icons-material/Article';
 
 import * as _ from 'lodash';
-import * as utils from "../utils";
+import { Step } from "../features/types";
 import { StepStatus } from "./StepStatus";
+import { getDockerDesktopClient } from "../utils";
 
-export const Step = (props: { row: utils.StepInfo }) => {
+export const PipelineStep = (props: { row: Step }) => {
   const { row } = props;
   console.log("Adding Steps " + JSON.stringify(row))
 
-  const ddClient = utils.getDockerDesktopClient();
+  const ddClient = getDockerDesktopClient();
 
-  const handleStepLogs = (step: utils.StepInfo) => {
+  const handleStepLogs = (step: Step) => {
     console.log("Handle Step Logs for step %", JSON.stringify(step));
     const process = ddClient.docker.cli.exec(
       'logs',

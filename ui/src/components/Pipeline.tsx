@@ -14,15 +14,15 @@ import TableHead from "@mui/material/TableHead";
 import TableBody from "@mui/material/TableBody";
 
 
-import { Step } from "./PipelineStep";
+import { PipelineStep } from "./PipelineStep";
 import { PipelineStatus } from "./PipelineStatus";
 
 import * as _ from 'lodash';
-import * as utils from "../utils";
 import { EditInVSCode } from "./VSCodeEdit";
+import { Pipeline } from "../features/types";
 
 interface RowProps {
-	row: utils.RowData
+	row: Pipeline
 	pipelineStatus: string
 }
 
@@ -73,7 +73,7 @@ export const Row = (props: RowProps) => {
 									</TableHead>
 									<TableBody>
 										{row.steps && row.steps.map((step) => (
-											<Step key={step.stepContainerId} row={step} />
+											<PipelineStep key={step.stepContainerId} row={step} />
 										))}
 									</TableBody>
 								</Table>

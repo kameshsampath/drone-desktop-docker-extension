@@ -8,33 +8,28 @@
     "out": true, // set this to false to include "out" folder in search results
     "dist": true // set this to false to include "dist" folder in search results
   },
-  
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
+
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+
+  "editor.formatOnSave": true,
 
   "[typescriptreact]": {
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
+      "source.fixAll.eslint": true
     }
   },
 
   "[typescript]": {
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
+      "source.fixAll.eslint": true
     }
   },
 
   "[javascript]": {
-    "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.fixAll.eslint": true,
+      "source.fixAll.eslint": true
     }
   },
-  
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "typescriptreact",
-  ]
+
+  "eslint.validate": ["javascript", "typescript", "typescriptreact"]
 }

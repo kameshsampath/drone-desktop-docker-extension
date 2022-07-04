@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React from "react";
 import {
   Button,
   Typography,
@@ -10,24 +10,21 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { createDockerDesktopClient } from "@docker/extension-api-client";
 import SearchIcon from '@mui/icons-material/Search';
 import CancelIcon from '@mui/icons-material/Cancel';
 
-import { MyContext } from "../index";
 import * as _ from 'lodash';
+import { getDockerDesktopClient } from "../utils";
+import { useAppDispatch } from "../app/hooks";
+import { loadPipelines } from "../features/pipelinesSlice";
+import { Pipeline } from "../features/types";
 
-const client = createDockerDesktopClient();
-
-function useDockerDesktopClient() {
-  return client;
-}
 
 export default function ImportDialog({ ...props }) {
   console.log("Add Pipeline component rendered.");
-  const ddClient = useDockerDesktopClient();
 
-  const context = useContext(MyContext);
+  const ddClient = getDockerDesktopClient();
+  const dispatch = useAppDispatch();
 
   const [actionInProgress, setActionInProgress] =
     React.useState<boolean>(false);
@@ -36,16 +33,12 @@ export default function ImportDialog({ ...props }) {
     setActionInProgress(true);
 
     try {
-      const pipelines = await ddClient.extension.vm.service.post("/pipeline", droneFiles);
+      const response = await ddClient.extension.vm.service.post("/pipeline", droneFiles) as Pipeline[];
 
-      console.log("Save Response %s", JSON.stringify(pipelines))
+      console.log("API Response %s", JSON.stringify(response))
 
-      if (pipelines) {
-        if (context.store.pipelines) {
-          _.unionBy(pipelines, context.store.pipelines, 'id');
-        } else {
-          context.store.pipelines = pipelines
-        }
+      if (response) {
+        dispatch(loadPipelines(response))
         ddClient.desktopUI.toast.success(
           `Successfully imported pipelines`
         );
