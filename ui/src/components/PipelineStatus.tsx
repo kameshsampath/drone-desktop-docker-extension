@@ -4,16 +4,16 @@ import RunCircleIcon from '@mui/icons-material/RunCircle';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 
 export const PipelineStatus = (props: { status: string }) => {
-	const { status } = props
+  const { status } = props;
 
-	switch (status) {
-		case "start":
-			return (<RunCircleIcon color='warning' />)
-		case "error":
-			return (<ErrorIcon color='error' />)
-		case "done":
-			return (<CheckCircleIcon color='success' />)
-		default:
-			return (<QuestionMarkIcon color='action' />);
-	}
-}
+  switch (status) {
+    case 'start':
+      return <RunCircleIcon color="warning" />;
+    case 'error':
+      return <ErrorIcon color="error" />;
+    case 'done':
+      return <CheckCircleIcon color="success" />;
+    default:
+      return <QuestionMarkIcon color="action" />;
+  }
+};

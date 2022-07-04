@@ -28,4 +28,3 @@ linters:
 
 linters-settings:
   gosec: {}
-
