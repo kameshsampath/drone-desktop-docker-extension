@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Button,
   Stack,
@@ -7,9 +7,6 @@ import {
   from '@mui/material';
 import ImportDialog from './components/ImportPipelineDialog';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
-
-import * as _ from 'lodash';
-
 import { PipelinesTable } from './components/Pipelines';
 
 export function App() {

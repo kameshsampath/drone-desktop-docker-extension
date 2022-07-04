@@ -34,8 +34,13 @@ export interface Pipeline {
     pipelineName: string,
     pipelinePath: string,
     pipelineFile: string,
-    status: string, 
+    status: string,
     steps: Step[]
+}
+
+export interface StepPayload {
+    pipelineID: string,
+    step: Step
 }
 
 export interface PipelinesState {

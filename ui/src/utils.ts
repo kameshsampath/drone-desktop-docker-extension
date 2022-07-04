@@ -34,23 +34,15 @@ export function md5(str): string {
     return Md5.hashStr(str);
 }
 
-export function getPipelineStatus(steps: Step[]):string {
-    console.log("getPipelineStatus " + JSON.stringify(steps));
-    
-    if (steps && steps.length > 0) {
-		const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start')
-		if (runningSteps.length > 0) {
-			return "start";
-		}
-		const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error')
-		if (erroredSteps.length > 0) {
-			return 'error'
-		}
-		const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done')
-		if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
-			return "done";
-		}
-	}
-
-	return "unknown";
+export async function getStepsCount(pipelinePath:string): Promise<number> {
+  const out = await getDockerDesktopClient().
+					extension
+					.host
+					.cli
+					.exec("yq", ["'.steps|length'",pipelinePath]);
+  if (out.stdout) {
+	console.log(`Pipeline ${pipelinePath} has ${out.stdout} steps`)
+	return parseInt(out.stdout)
+  }
+  return 0;
 }
