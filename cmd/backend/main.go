@@ -40,11 +40,11 @@ func main() {
 		if _, err := os.Create(dbPath); err != nil {
 			log.Fatal(err)
 		}
+
+		ioutil.WriteFile(dbPath, []byte("[]"), 0600)
 	} else if err != nil {
 		log.Fatal(err)
 	}
-
-	ioutil.WriteFile(dbPath, []byte("[]"), 0644)
 
 	h, err := handler.NewHandler(dbPath)
 	if err != nil {
