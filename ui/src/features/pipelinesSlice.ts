@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../app/store';
+import { AppThunk, RootState } from '../app/store';
 import { getDockerDesktopClient } from '../utils';
 import { Pipeline, PipelinesState, PipelineStatus, StepCountPayload, StepPayload } from './types';
 import * as _ from 'lodash';
@@ -37,6 +37,21 @@ export const importPipelines = createAsyncThunk('pipelines/loadPipelines', async
   return response;
 });
 
+export const savePipelines = (): AppThunk => async (_dispatch, getState) => {
+  const currState = getState().pipelines;
+  const pipelines = currState.rows;
+  console.log('Saving pipelines to backend ' + JSON.stringify(pipelines));
+  if (pipelines?.length > 0) {
+    try {
+      const response = await ddClient.extension.vm.service.post('/pipeline', pipelines);
+      console.log('Saved pipelines' + JSON.stringify(response));
+    } catch (err) {
+      console.error('Error Saving' + JSON.stringify(err));
+      ddClient.desktopUI.toast.error(`Error saving pipelines ${err.message}`);
+    }
+  }
+};
+
 export const pipelinesSlice = createSlice({
   name: 'pipelines',
   initialState,
@@ -68,14 +83,14 @@ export const pipelinesSlice = createSlice({
       }
     },
     updateStep: (state, action: PayloadAction<StepPayload>) => {
-      console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
+      //console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
       const { pipelineID, step } = action.payload;
       const idx = _.findIndex(state.rows, { id: pipelineID });
       if (idx != -1) {
-        console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
+        //console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
         const oldSteps = state.rows[idx].steps;
         const stepIdx = _.findIndex(oldSteps, { stepName: step.stepName });
-        console.log('Found Step::' + stepIdx + '::' + JSON.stringify(oldSteps));
+        //console.log('Found Step::' + stepIdx + '::' + JSON.stringify(oldSteps));
         if (stepIdx != -1) {
           oldSteps[stepIdx] = step;
           state.rows[idx].steps = oldSteps;
@@ -96,7 +111,7 @@ export const pipelinesSlice = createSlice({
       const { pipelineID, status } = action.payload;
       const idx = _.findIndex(state.rows, { id: pipelineID });
       if (idx != -1) {
-        state.rows[idx].status = status;
+        state.rows[idx].status.total = status.total;
       }
     },
     pipelineStatus: (state, action: PayloadAction<string>) => {
@@ -143,7 +158,7 @@ function updatePipelineStatus(state, pipelineId: string) {
 }
 
 function rowsFromPayload(payload: Pipeline[]) {
-  //console.log("Received Payload " + JSON.stringify(payload))
+  //console.log('Received Payload ' + JSON.stringify(payload));
   const rows = [];
   payload.map((v) => {
     rows.push({
@@ -151,6 +166,7 @@ function rowsFromPayload(payload: Pipeline[]) {
       pipelinePath: v.pipelinePath,
       pipelineName: v.pipelineName?.replace(/[\n\r]/g, ''),
       pipelineFile: v.pipelineFile,
+      steps: v?.steps,
       status: v?.status
     });
   });

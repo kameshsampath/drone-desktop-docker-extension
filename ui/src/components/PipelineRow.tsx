@@ -3,7 +3,7 @@ import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import { Fragment, useState } from 'react';
-import { pipelineDisplayName } from '../utils';
+import { md5, pipelineDisplayName } from '../utils';
 import PlusIcon from '@mui/icons-material/Add';
 import MinusIcon from '@mui/icons-material/Remove';
 import Collapse from '@mui/material/Collapse';
@@ -113,10 +113,9 @@ export const Row = (props) => {
                       row.steps.map((step) => (
                         <>
                           <PipelineStep
-                            key={step.stepContainerId}
+                            key={`${row.id}-${md5(step.stepName)}`}
                             row={step}
                           />
-                          {/* <LogViewer step={step} /> */}
                         </>
                       ))}
                   </TableBody>

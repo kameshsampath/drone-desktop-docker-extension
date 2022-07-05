@@ -181,6 +181,67 @@ func TestSavePipeline(t *testing.T) {
 	os.Remove(dataFile)
 }
 
+func TestUpdatePipeline(t *testing.T) {
+	dataFile := getDataFile("db.json")
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+	e := echo.New()
+	newPipelineJSON := `[
+		{
+			"id": "0592f315d12d71632b2fea692fc9625e",
+			"pipelineName": "GoLang Build",
+			"pipelinePath": "/tmp/test-golang-project",
+			"pipelineFile": "/tmp/test-golang-project/.drone.yml",
+			"steps": [
+			  {
+				"stepName": "step-one",
+				"stepImage": "busybox",
+				"status": "done"
+			  },
+			  {
+				"stepName": "step-two",
+				"stepImage": "alpine",
+				"status": "error"
+			  }
+			],
+			"status": {
+				"total": 2,
+				"error": 1,
+				"done": 1
+			}
+		  }
+	]`
+	req := httptest.NewRequest(http.MethodPost, "/pipeline", strings.NewReader(newPipelineJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if assert.NoError(t, h.SavePipelines(c)) {
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		var dps []*DronePipeline
+		json.Unmarshal(rec.Body.Bytes(), &dps)
+		assert.NotNil(t, dps)
+		assert.Equal(t, len(dps), 1)
+
+		dp := dps[0]
+		assert.Equal(t, "0592f315d12d71632b2fea692fc9625e", dp.ID)
+		assert.Equal(t, "GoLang Build", dp.Name)
+		assert.Equal(t, "/tmp/test-golang-project", dp.Path)
+		assert.Equal(t, "/tmp/test-golang-project/.drone.yml", dp.PipelineFile)
+		assert.NotNil(t, dp.Status)
+		assert.Equal(t, 2, len(dp.Steps))
+		assert.Equal(t, 2, dp.Status.Total)
+		assert.Equal(t, 1, dp.Status.Done)
+		assert.Equal(t, 1, dp.Status.Error)
+	}
+	os.Remove(dataFile)
+}
+
 func TestSavePipelines(t *testing.T) {
 	dataFile := getDataFile("db.json")
 	if err := prepareDataFile(); err != nil {

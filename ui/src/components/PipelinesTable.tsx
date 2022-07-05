@@ -18,7 +18,9 @@ import {
   removePipelines,
   selectRows,
   updateStep,
-  addStep
+  addStep,
+  pipelineStatus,
+  savePipelines
 } from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
 import { getDockerDesktopClient, md5 } from '../utils';
@@ -42,6 +44,8 @@ export const PipelinesTable = (props) => {
   const [removeConfirm, setRemoveConfirm] = useState(false);
   const [removals, setRemovals] = useState([]);
 
+  const ddClient = getDockerDesktopClient();
+
   useEffect(() => {
     if (pipelinesStatus === 'idle') {
       dispatch(importPipelines());
@@ -49,7 +53,6 @@ export const PipelinesTable = (props) => {
   }, [pipelinesStatus, dispatch]);
 
   useEffect(() => {
-    const ddClient = getDockerDesktopClient();
     const process = ddClient.docker.cli.exec(
       'events',
       [
@@ -123,6 +126,7 @@ export const PipelinesTable = (props) => {
                       step: stepInfo
                     })
                   );
+                  dispatch(savePipelines());
                 }
                 break;
               }
@@ -229,6 +233,7 @@ export const PipelinesTable = (props) => {
             {pipelinesStatus === 'loaded' && (
               <TableBody>
                 {pipelines.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => {
+                  console.log('Row Key:' + row.id + ' ' + row.pipelineFile);
                   return (
                     <Row
                       labelId={`pipeline-table-checkbox-${index}`}
