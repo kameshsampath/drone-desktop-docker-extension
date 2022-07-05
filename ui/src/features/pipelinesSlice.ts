@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { AppThunk, RootState } from '../app/store';
+import { RootState } from '../app/store';
 import { getDockerDesktopClient } from '../utils';
-import { Pipeline, PipelinesState, StepPayload } from './types';
+import { Pipeline, PipelinesState, PipelineStatus, StepCountPayload, StepPayload } from './types';
 import * as _ from 'lodash';
 
 const initialState: PipelinesState = {
@@ -11,27 +11,25 @@ const initialState: PipelinesState = {
 
 const ddClient = getDockerDesktopClient();
 
-const computePipelineStatus = (state, pipelineId) => {
+function computePipelineStatus(state, pipelineId): PipelineStatus {
   const pipeline = _.find(state.rows, { id: pipelineId });
   if (pipeline) {
     const steps = pipeline.steps;
 
     const runningSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'start');
-    if (runningSteps.length > 0) {
-      return 'start';
-    }
 
     const erroredSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'error');
-    if (erroredSteps.length > 0) {
-      return 'error';
-    }
 
     const allDoneSteps = _.filter(steps, (s) => s.status?.toLowerCase() === 'done');
-    if (erroredSteps.length == 0 && runningSteps == 0 && allDoneSteps.length > 0) {
-      return 'done';
-    }
+
+    return {
+      total: steps?.length,
+      running: runningSteps?.length,
+      error: erroredSteps?.length,
+      done: allDoneSteps?.length
+    };
   }
-};
+}
 
 export const importPipelines = createAsyncThunk('pipelines/loadPipelines', async () => {
   console.log('Loading pipelines from backend');
@@ -47,14 +45,42 @@ export const pipelinesSlice = createSlice({
       state.status = 'loaded';
       state.rows = _.unionBy(state.rows, rowsFromPayload(action.payload), 'id');
     },
-    upsertSteps: (state, action: PayloadAction<StepPayload>) => {
-      //console.log("Action::" + action.type + "::" + JSON.stringify(action.payload));
+    addStep: (state, action: PayloadAction<StepPayload>) => {
+      // console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
       const { pipelineID, step } = action.payload;
       const idx = _.findIndex(state.rows, { id: pipelineID });
       if (idx != -1) {
-        //console.log("Found::" + idx + "::" + JSON.stringify(state.rows[idx]));
-        state.rows[idx].steps = _.unionBy([step], state.rows[idx].steps, 'name');
+        //console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
+        let oldSteps = state.rows[idx].steps;
+        //this will be the first step of the pipeline
+        if (!oldSteps) {
+          oldSteps = [step];
+        } else {
+          const stepIdx = _.findIndex(oldSteps, { stepName: step.stepName });
+          if (stepIdx != -1) {
+            oldSteps[stepIdx] = step;
+          } else {
+            oldSteps = [...oldSteps, step];
+          }
+        }
+        state.rows[idx].steps = oldSteps;
         updatePipelineStatus(state, pipelineID);
+      }
+    },
+    updateStep: (state, action: PayloadAction<StepPayload>) => {
+      console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
+      const { pipelineID, step } = action.payload;
+      const idx = _.findIndex(state.rows, { id: pipelineID });
+      if (idx != -1) {
+        console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
+        const oldSteps = state.rows[idx].steps;
+        const stepIdx = _.findIndex(oldSteps, { stepName: step.stepName });
+        console.log('Found Step::' + stepIdx + '::' + JSON.stringify(oldSteps));
+        if (stepIdx != -1) {
+          oldSteps[stepIdx] = step;
+          state.rows[idx].steps = oldSteps;
+          updatePipelineStatus(state, pipelineID);
+        }
       }
     },
     deleteSteps: (state, action: PayloadAction<StepPayload>) => {
@@ -64,6 +90,13 @@ export const pipelinesSlice = createSlice({
       if (idx != -1) {
         const j = _.findIndex(state.rows[idx].steps, { name: step.stepName });
         state.rows[idx].steps.splice(j, 1);
+      }
+    },
+    updateStepCount: (state, action: PayloadAction<StepCountPayload>) => {
+      const { pipelineID, status } = action.payload;
+      const idx = _.findIndex(state.rows, { id: pipelineID });
+      if (idx != -1) {
+        state.rows[idx].status = status;
       }
     },
     pipelineStatus: (state, action: PayloadAction<string>) => {
@@ -94,7 +127,8 @@ export const pipelinesSlice = createSlice({
   }
 });
 
-export const { loadPipelines, pipelineStatus, upsertSteps, deleteSteps, removePipelines } = pipelinesSlice.actions;
+export const { loadPipelines, pipelineStatus, addStep, updateStep, deleteSteps, removePipelines, updateStepCount } =
+  pipelinesSlice.actions;
 
 export const selectRows = (state: RootState) => state.pipelines.rows;
 export const dataLoadStatus = (state: RootState) => state.pipelines.status;

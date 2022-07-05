@@ -8,39 +8,10 @@ import ArticleIcon from '@mui/icons-material/Article';
 
 import { Step } from '../features/types';
 import { StepStatus } from './StepStatus';
-import { getDockerDesktopClient } from '../utils';
 
 export const PipelineStep = (props: { row: Step }) => {
   const { row } = props;
-  console.log('Adding Steps ' + JSON.stringify(row));
-
-  const ddClient = getDockerDesktopClient();
-
-  const handleStepLogs = (step: Step) => {
-    console.log('Handle Step Logs for step %', JSON.stringify(step));
-    const process = ddClient.docker.cli.exec('logs', ['--details', '--follow', step.stepContainerId], {
-      stream: {
-        splitOutputLines: true,
-        onOutput(data) {
-          if (data.stdout) {
-            console.error(data.stdout);
-          } else {
-            console.log(data.stderr);
-          }
-        },
-        onError(error) {
-          console.error(error);
-        },
-        onClose(exitCode) {
-          console.log('onClose with exit code ' + exitCode);
-        }
-      }
-    });
-
-    return () => {
-      process.close();
-    };
-  };
+  //console.log('Adding Steps ' + JSON.stringify(row));
 
   return (
     <Fragment>
@@ -58,7 +29,6 @@ export const PipelineStep = (props: { row: Step }) => {
             <IconButton
               color="primary"
               hidden={row.status !== 'destroy'}
-              onClick={() => handleStepLogs(row)}
             >
               <ArticleIcon />
             </IconButton>

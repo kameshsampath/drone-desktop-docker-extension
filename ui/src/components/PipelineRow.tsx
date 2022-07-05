@@ -62,7 +62,11 @@ export const Row = (props) => {
           component="th"
           scope="row"
         >
-          <PipelineStatus status={pipelineStatus} />
+          <PipelineStatus
+            pipelineID={row.id}
+            status={pipelineStatus}
+            pipelineFile={row.pipelineFile}
+          />
         </TableCell>
         <TableCell>
           <PipelineRowActions
@@ -107,10 +111,13 @@ export const Row = (props) => {
                   <TableBody>
                     {row.steps &&
                       row.steps.map((step) => (
-                        <PipelineStep
-                          key={step.stepContainerId}
-                          row={step}
-                        />
+                        <>
+                          <PipelineStep
+                            key={step.stepContainerId}
+                            row={step}
+                          />
+                          {/* <LogViewer step={step} /> */}
+                        </>
                       ))}
                   </TableBody>
                 </Table>

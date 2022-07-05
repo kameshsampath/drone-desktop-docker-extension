@@ -11,8 +11,15 @@ import {
   TablePagination,
   TableRow
 } from '@mui/material';
-import { Row } from './Pipeline';
-import { upsertSteps, dataLoadStatus, importPipelines, removePipelines, selectRows } from '../features/pipelinesSlice';
+import { Row } from './PipelineRow';
+import {
+  dataLoadStatus,
+  importPipelines,
+  removePipelines,
+  selectRows,
+  updateStep,
+  addStep
+} from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
 import { getDockerDesktopClient, md5 } from '../utils';
 import { Event, EventStatus, Step } from '../features/types';
@@ -29,8 +36,9 @@ export const PipelinesTable = (props) => {
   const [selected, setSelected] = useState<readonly string[]>([]);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [dense, setDense] = useState(false);
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [removeConfirm, setRemoveConfirm] = useState(false);
   const [removals, setRemovals] = useState([]);
 
@@ -77,7 +85,7 @@ export const PipelinesTable = (props) => {
 
             switch (event.status) {
               case EventStatus.START: {
-                console.log('START %s', JSON.stringify(event.Actor));
+                //console.log('START %s', JSON.stringify(event.Actor));
                 if (pipelineFQN && stepName) {
                   const stepInfo: Step = {
                     stepContainerId,
@@ -87,7 +95,7 @@ export const PipelinesTable = (props) => {
                     status: 'start'
                   };
                   dispatch(
-                    upsertSteps({
+                    addStep({
                       pipelineID,
                       step: stepInfo
                     })
@@ -99,7 +107,7 @@ export const PipelinesTable = (props) => {
               case EventStatus.STOP:
               case EventStatus.DIE:
               case EventStatus.KILL: {
-                console.log('STOP/DIE/KILL %s', JSON.stringify(event));
+                //console.log('STOP/DIE/KILL %s', JSON.stringify(event));
                 const exitCode = parseInt(event.Actor.Attributes['exitCode']);
                 if (pipelineFQN && stepName) {
                   const stepInfo: Step = {
@@ -110,26 +118,7 @@ export const PipelinesTable = (props) => {
                     status: exitCode === 0 ? 'done' : 'error'
                   };
                   dispatch(
-                    upsertSteps({
-                      pipelineID,
-                      step: stepInfo
-                    })
-                  );
-                }
-                break;
-              }
-              case EventStatus.DESTROY: {
-                console.log('DESTROY %s', JSON.stringify(event));
-                if (pipelineFQN && stepName) {
-                  const stepInfo: Step = {
-                    stepContainerId,
-                    pipelineFQN,
-                    stepName,
-                    stepImage,
-                    status: 'destroy'
-                  };
-                  dispatch(
-                    upsertSteps({
+                    updateStep({
                       pipelineID,
                       step: stepInfo
                     })
@@ -138,6 +127,7 @@ export const PipelinesTable = (props) => {
                 break;
               }
               default: {
+                //not handled EventStatus.DESTROY
                 break;
               }
             }
@@ -256,7 +246,7 @@ export const PipelinesTable = (props) => {
                       height: (dense ? 33 : 53) * emptyRows
                     }}
                   >
-                    <TableCell colSpan={6} />
+                    <TableCell colSpan={4} />
                   </TableRow>
                 )}
               </TableBody>

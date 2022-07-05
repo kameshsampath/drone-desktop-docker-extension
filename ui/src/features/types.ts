@@ -34,13 +34,25 @@ export interface Pipeline {
   pipelineName: string;
   pipelinePath: string;
   pipelineFile: string;
-  status: string;
+  status: PipelineStatus;
   steps: Step[];
 }
 
 export interface StepPayload {
   pipelineID: string;
   step: Step;
+}
+
+export interface StepCountPayload {
+  pipelineID: string;
+  status: PipelineStatus;
+}
+
+export interface PipelineStatus {
+  total: number;
+  running?: number;
+  error?: number;
+  done?: number;
 }
 
 export interface PipelinesState {

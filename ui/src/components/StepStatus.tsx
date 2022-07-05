@@ -14,6 +14,6 @@ export const StepStatus = (props: { status: string }) => {
     case 'done':
       return <CheckCircleIcon color="success" />;
     default:
-      return <QuestionMarkIcon color="action" />;
+      return <></>;
   }
 };
