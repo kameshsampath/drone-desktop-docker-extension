@@ -4,8 +4,8 @@ import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import { Fragment, useState } from 'react';
 import { pipelineDisplayName } from '../utils';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import PlusIcon from '@mui/icons-material/Add';
+import MinusIcon from '@mui/icons-material/Remove';
 import Collapse from '@mui/material/Collapse';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -47,7 +47,7 @@ export const Row = (props) => {
             size="small"
             onClick={() => setOpen(!open)}
           >
-            {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            {open ? <MinusIcon /> : <PlusIcon />}
           </IconButton>
         </TableCell>
         <Tooltip title={row.pipelineFile}>
