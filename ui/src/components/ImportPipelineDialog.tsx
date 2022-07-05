@@ -52,7 +52,7 @@ export default function ImportDialog({ ...props }) {
       console.log(' Pipeline find %s', JSON.stringify(cmd));
       if (cmd.stdout) {
         const droneFiles = JSON.parse(cmd.stdout);
-        console.log('Drone files %s', droneFiles.length);
+        //console.log('Drone files %s', droneFiles.length);
         savePipelines(droneFiles);
       }
     } catch (err) {

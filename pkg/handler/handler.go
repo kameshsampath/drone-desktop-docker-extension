@@ -67,7 +67,7 @@ func loadDB(dbFilePath string) ([]*DronePipeline, error) {
 }
 
 func (h *Handler) GetPipelines(c echo.Context) error {
-	log.Info("SavePipeline")
+	log.Info("GetPipelines")
 	var db []DronePipeline
 
 	_, err := os.Stat(h.dbFile)
@@ -87,6 +87,20 @@ func (h *Handler) GetPipelines(c echo.Context) error {
 	return nil
 }
 
+func (h *Handler) DeletePipelines(c echo.Context) error {
+	var pipelineIds []*string
+	if err := c.Bind(&pipelineIds); err != nil {
+		return err
+	}
+	log.Infof("DeletePipelines %v", pipelineIds)
+	for _, id := range pipelineIds {
+		if err := h.delete(*id); err != nil {
+			return err
+		}
+	}
+	return c.JSON(http.StatusOK, pipelineIds)
+}
+
 func (h *Handler) DeletePipeline(c echo.Context) error {
 	var id string
 	if err := echo.PathParamsBinder(c).
@@ -95,26 +109,20 @@ func (h *Handler) DeletePipeline(c echo.Context) error {
 		return err
 	}
 
-	if ok := h.hasElement(id); ok {
-		i := h.indexOf(id)
-		if i != -1 {
-			h.db = append(h.db[:i], h.db[i+1:]...)
-			if err := h.persistDB(); err != nil {
-				return err
-			}
-
-			return c.NoContent(http.StatusNoContent)
-		}
+	log.Infof("DeletePipeline %s", id)
+	if err := h.delete(id); err == nil {
+		return c.NoContent(http.StatusNoContent)
 	}
+
 	return echo.NewHTTPError(http.StatusNotFound, "pipeline not found")
 }
 
 func (h *Handler) SavePipelines(c echo.Context) error {
-	log.Info("Save Pipelines")
 	var dps []*DronePipeline
 	if err := c.Bind(&dps); err != nil {
 		return err
 	}
+	log.Infof("Save Pipelines %v", dps)
 	for _, dp := range dps {
 		if !h.hasElement(dp.ID) {
 			h.db = append(h.db, dp)
@@ -149,6 +157,19 @@ func (h *Handler) persistDB() error {
 	}
 	if err := ioutil.WriteFile(h.dbFile, b, 0644); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (h *Handler) delete(id string) error {
+	if ok := h.hasElement(id); ok {
+		i := h.indexOf(id)
+		if i != -1 {
+			h.db = append(h.db[:i], h.db[i+1:]...)
+			if err := h.persistDB(); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

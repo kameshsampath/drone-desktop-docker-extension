@@ -2,24 +2,23 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   Backdrop,
-  Checkbox,
   CircularProgress,
   Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
-  TableHead,
   TablePagination,
   TableRow
 } from '@mui/material';
 import { Row } from './Pipeline';
-import { upsertSteps, dataLoadStatus, importPipelines, selectRows } from '../features/pipelinesSlice';
+import { upsertSteps, dataLoadStatus, importPipelines, removePipelines, selectRows } from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
 import { getDockerDesktopClient, md5 } from '../utils';
 import { Event, EventStatus, Step } from '../features/types';
 import { PipelineTableToolbar } from './Toolbar';
 import { PipelinesTableHead } from './PipelinesTableHead';
+import RemovePipelineDialog from './RemovePipelineDialog';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const PipelinesTable = (props) => {
@@ -31,6 +30,9 @@ export const PipelinesTable = (props) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [dense, setDense] = useState(false);
+
+  const [removeConfirm, setRemoveConfirm] = useState(false);
+  const [removals, setRemovals] = useState([]);
 
   useEffect(() => {
     if (pipelinesStatus === 'idle') {
@@ -172,6 +174,23 @@ export const PipelinesTable = (props) => {
     setSelected([]);
   };
 
+  const handleRemoveDialogClose = () => {
+    setRemoveConfirm(false);
+    //console.log('Pipe L ' + pipelines.length);
+    if (pipelines.length > 0) {
+      dispatch(removePipelines(removals));
+    }
+    setSelected([]);
+    setRemovals([]);
+  };
+
+  const removeSelectedPipelines = () => {
+    const toRemove = [];
+    toRemove.push(...selected);
+    //console.log('Remove all: ' + toRemove);
+    setRemovals(toRemove);
+  };
+
   const handleClick = (event: React.MouseEvent<unknown>, name: string) => {
     const selectedIndex = selected.indexOf(name);
     let newSelected: readonly string[] = [];
@@ -202,7 +221,10 @@ export const PipelinesTable = (props) => {
         <CircularProgress color="info" />
       </Backdrop>
       <Paper sx={{ width: '100%', mb: 2 }}>
-        <PipelineTableToolbar numSelected={selected.length} />
+        <PipelineTableToolbar
+          handleRemove={removeSelectedPipelines}
+          numSelected={selected.length}
+        />
         <TableContainer>
           <Table
             sx={{ minWidth: 750 }}
@@ -249,6 +271,11 @@ export const PipelinesTable = (props) => {
           page={page}
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+        <RemovePipelineDialog
+          open={removals.length > 0}
+          selectedToRemove={removals}
+          onClose={handleRemoveDialogClose}
         />
       </Paper>
     </>

@@ -47,7 +47,3 @@ export interface PipelinesState {
   status: 'idle' | 'loading' | 'failed' | 'loaded';
   rows: Pipeline[];
 }
-
-export interface PipelineTableToolbarProps {
-  numSelected: number;
-}

@@ -10,15 +10,15 @@ export const PipelineRowActions = (props: {
   pipelineName: string;
   pipelineFile: string;
 }) => {
-  const { pipelineID, pipelineFile, pipelineName, workspacePath } = props;
-  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState(false);
+  const { pipelineID, workspacePath } = props;
+  const [removeConfirm, setRemoveConfirm] = useState(false);
 
-  const handleDeletePipeline = () => {
-    setDeleteConfirmDialog(true);
+  const handleDeletePipelines = () => {
+    setRemoveConfirm(true);
   };
 
-  const handleImportDialogClose = () => {
-    setDeleteConfirmDialog(false);
+  const handleRemoveDialogClose = () => {
+    setRemoveConfirm(false);
   };
 
   return (
@@ -39,17 +39,15 @@ export const PipelineRowActions = (props: {
         </IconButton>
       </Tooltip>
       <Tooltip title="Remove Pipeline">
-        <IconButton onClick={handleDeletePipeline}>
+        <IconButton onClick={handleDeletePipelines}>
           <RemoveCircleIcon color="error" />
         </IconButton>
       </Tooltip>
-      {deleteConfirmDialog && (
+      {removeConfirm && (
         <RemovePipelineDialog
-          open={deleteConfirmDialog}
-          pipelineFile={pipelineFile}
-          pipelineName={pipelineName}
-          pipelineID={pipelineID}
-          onClose={handleImportDialogClose}
+          open={removeConfirm}
+          selectedToRemove={[pipelineID]}
+          onClose={handleRemoveDialogClose}
         />
       )}
     </Stack>

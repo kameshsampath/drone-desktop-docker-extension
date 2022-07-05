@@ -11,19 +11,29 @@ import {
 } from '@mui/material';
 import React from 'react';
 import { useAppDispatch } from '../app/hooks';
-import { removePipeline } from '../features/pipelinesSlice';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import { getDockerDesktopClient } from '../utils';
 
 export default function RemovePipelineDialog({ ...props }) {
   const dispatch = useAppDispatch();
   const [actionInProgress, setActionInProgress] = React.useState<boolean>(false);
 
-  const handleDeletePipeline = () => {
+  const ddClient = getDockerDesktopClient();
+
+  const handleDeletePipeline = async () => {
     setActionInProgress(true);
-    dispatch(removePipeline(props.pipelineID));
-    setActionInProgress(false);
-    props.onClose();
+    let response;
+    try {
+      const pipelineIds = props.selectedToRemove;
+      //console.log('Removing pipelines ' + JSON.stringify(pipelineIds));
+      response = await ddClient.extension.vm.service.post('/pipelines/delete', pipelineIds);
+    } catch (err) {
+      ddClient.desktopUI.toast.error(`Error removing pipelines ${err?.message}`);
+    } finally {
+      setActionInProgress(false);
+      props.onClose(response);
+    }
   };
 
   return (
@@ -31,7 +41,7 @@ export default function RemovePipelineDialog({ ...props }) {
       open={props.open}
       onClose={props.onClose}
     >
-      <DialogTitle>Remove pipeline ?</DialogTitle>
+      <DialogTitle>Remove pipelines ?</DialogTitle>
       <DialogContent>
         <Backdrop
           sx={{
@@ -54,7 +64,7 @@ export default function RemovePipelineDialog({ ...props }) {
               color="text.secondary"
               sx={{ mt: 2 }}
             >
-              Do you want to remove the pipeline "{props.pipelineName}" defined in "{props.pipelineFile}"?
+              Are you sure of removing the pipeline(s)?
             </Typography>
           </Grid>
         </Grid>

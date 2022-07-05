@@ -15,17 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	cwd    string
-	mockDB = []*DronePipeline{
-		{
-			ID:   "55feaccf5aff35d79551b5cffa7ffff9",
-			Name: "JavaBuild",
-			Path: "/tmp/test-project",
-		},
-	}
-)
-
 func getDataFile(filePath string) string {
 	cwd, _ := os.Getwd()
 	return path.Join(cwd, "testdata", filePath)
@@ -86,6 +75,37 @@ func TestGetPipelines(t *testing.T) {
 		json.Unmarshal(rec.Body.Bytes(), &actual)
 		assert.Equal(t, len(actual), 3)
 		assert.True(t, reflect.DeepEqual(expected, actual))
+	}
+	os.Remove(dataFile)
+}
+
+func TestDeletePipelines(t *testing.T) {
+	if err := prepareDataFile(); err != nil {
+		t.Fatal(err)
+	}
+
+	pipelineIdsJSON := `["55feaccf5aff35d79551b5cffa7ffff9","d8366124dbd49939f0485772abd3617d"]`
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(pipelineIdsJSON))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.SetPath("/pipelines/delete")
+
+	dataFile := getDataFile("db.json")
+
+	h, err := NewHandler(dataFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if assert.NoError(t, h.DeletePipelines(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var ids []string
+		json.Unmarshal(rec.Body.Bytes(), &ids)
+		assert.NotNil(t, ids)
+		assert.Equal(t, len(ids), 2)
+		assert.True(t, reflect.DeepEqual(ids, []string{"55feaccf5aff35d79551b5cffa7ffff9", "d8366124dbd49939f0485772abd3617d"}))
 	}
 	os.Remove(dataFile)
 }

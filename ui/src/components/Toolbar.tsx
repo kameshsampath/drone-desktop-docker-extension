@@ -1,11 +1,10 @@
 import { IconButton, Toolbar, Tooltip, Typography } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
-import { PipelineTableToolbarProps } from '../features/types';
 import { alpha } from '@mui/material/styles';
 
-export const PipelineTableToolbar = (props: PipelineTableToolbarProps) => {
-  const { numSelected } = props;
+export const PipelineTableToolbar = (props) => {
+  const { numSelected, handleRemove } = props;
 
   return (
     <Toolbar
@@ -38,7 +37,7 @@ export const PipelineTableToolbar = (props: PipelineTableToolbarProps) => {
       )}
       {numSelected > 0 ? (
         <Tooltip title="Remove Pipelines">
-          <IconButton>
+          <IconButton onClick={handleRemove}>
             <RemoveCircleIcon color="error" />
           </IconButton>
         </Tooltip>

@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../app/store';
+import { AppThunk, RootState } from '../app/store';
 import { getDockerDesktopClient } from '../utils';
 import { Pipeline, PipelinesState, StepPayload } from './types';
 import * as _ from 'lodash';
@@ -47,9 +47,6 @@ export const pipelinesSlice = createSlice({
       state.status = 'loaded';
       state.rows = _.unionBy(state.rows, rowsFromPayload(action.payload), 'id');
     },
-    removePipeline: (state, action: PayloadAction<string>) => {
-      console.log('Deleting pipeline ' + action.payload);
-    },
     upsertSteps: (state, action: PayloadAction<StepPayload>) => {
       //console.log("Action::" + action.type + "::" + JSON.stringify(action.payload));
       const { pipelineID, step } = action.payload;
@@ -73,6 +70,11 @@ export const pipelinesSlice = createSlice({
       //console.log("Action::pipelineStatus::Payload" + action.payload);
       const pipelineID = action.payload;
       updatePipelineStatus(state, pipelineID);
+    },
+    removePipelines: (state, action: PayloadAction<string[]>) => {
+      const pipelineIds = action.payload;
+      console.log('Action::removePipelines::Payload' + JSON.stringify(pipelineIds));
+      state.rows = _.remove(state.rows, (o) => !_.includes(pipelineIds, o.id));
     }
   },
   extraReducers: (builder) => {
@@ -91,6 +93,11 @@ export const pipelinesSlice = createSlice({
       });
   }
 });
+
+export const { loadPipelines, pipelineStatus, upsertSteps, deleteSteps, removePipelines } = pipelinesSlice.actions;
+
+export const selectRows = (state: RootState) => state.pipelines.rows;
+export const dataLoadStatus = (state: RootState) => state.pipelines.status;
 
 function updatePipelineStatus(state, pipelineId: string) {
   //console.log("Update Pipeline Status..")
@@ -115,10 +122,5 @@ function rowsFromPayload(payload: Pipeline[]) {
   });
   return rows;
 }
-
-export const { loadPipelines, pipelineStatus, upsertSteps, deleteSteps, removePipeline } = pipelinesSlice.actions;
-
-export const selectRows = (state: RootState) => state.pipelines.rows;
-export const dataLoadStatus = (state: RootState) => state.pipelines.status;
 
 export default pipelinesSlice.reducer;

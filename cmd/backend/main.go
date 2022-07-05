@@ -52,6 +52,7 @@ func main() {
 	}
 	router.GET("/pipelines", h.GetPipelines)
 	router.POST("/pipeline", h.SavePipelines)
+	router.POST("/pipelines/delete", h.DeletePipelines)
 	router.DELETE("/pipeline/:id", h.DeletePipeline)
 
 	log.Fatal(router.Start(startURL))
