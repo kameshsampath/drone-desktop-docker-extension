@@ -1,5 +1,6 @@
 IMAGE?=kameshsampath/drone-desktop-extension
 TAG?=latest
+VOLUME_NAME=drone-desktop-data
 
 BUILDER=buildx-multi-arch
 
@@ -20,6 +21,7 @@ build-extension: ## Build service image to be deployed as a desktop extension
 	docker build --tag=$(IMAGE):$(TAG) .
 
 install-extension: build-extension ## Install the extension
+	docker volume create $(VOLUME_NAME)
 	docker extension install $(IMAGE):$(TAG)
 
 update-extension: build-extension ## Update the extension

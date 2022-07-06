@@ -8,6 +8,7 @@ import ArticleIcon from '@mui/icons-material/Article';
 
 import { Step } from '../features/types';
 import { StepStatus } from './StepStatus';
+import { Tooltip } from '@mui/material';
 
 export const PipelineStep = (props: { row: Step }) => {
   const { row } = props;
@@ -26,12 +27,14 @@ export const PipelineStep = (props: { row: Step }) => {
         </TableCell>
         <TableCell>
           {row.status !== 'destroy' && (
-            <IconButton
-              color="primary"
-              hidden={row.status !== 'destroy'}
-            >
-              <ArticleIcon />
-            </IconButton>
+            <Tooltip title="Show Step Logs">
+              <IconButton
+                color="primary"
+                hidden={row.status !== 'destroy'}
+              >
+                <ArticleIcon />
+              </IconButton>
+            </Tooltip>
           )}
         </TableCell>
       </TableRow>

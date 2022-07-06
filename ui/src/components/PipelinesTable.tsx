@@ -233,7 +233,7 @@ export const PipelinesTable = (props) => {
             {pipelinesStatus === 'loaded' && (
               <TableBody>
                 {pipelines.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row, index) => {
-                  console.log('Row Key:' + row.id + ' ' + row.pipelineFile);
+                  //console.log('Row Key:' + row.id + ' ' + row.pipelineFile);
                   return (
                     <Row
                       labelId={`pipeline-table-checkbox-${index}`}
