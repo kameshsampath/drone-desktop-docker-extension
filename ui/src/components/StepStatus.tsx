@@ -1,7 +1,6 @@
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import RunCircleIcon from '@mui/icons-material/RunCircle';
-import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 
 export const StepStatus = (props: { status: string }) => {
   const { status } = props;

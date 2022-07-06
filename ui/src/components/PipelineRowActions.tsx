@@ -33,7 +33,7 @@ export const PipelineRowActions = (props: {
           href={vscodeURI(workspacePath)}
         >
           <img
-            src="/images/vscode.png"
+            src={process.env.PUBLIC_URL + '/images/vscode.png'}
             width="16"
           />
         </IconButton>
