@@ -57,7 +57,7 @@ COPY --from=builder /backend/dist/pipelines-finder_darwin_arm64/pipelines-finder
 COPY --from=builder /backend/dist/backend_linux_arm64/backend /
 COPY docker-compose.yaml .
 COPY metadata.json .
-COPY logo.svg .
+COPY *.svg .
 COPY --from=client-builder /ui/build ui
 RUN mkdir -p /data
 CMD /backend -socket /run/guest-services/extension-drone-desktop.sock

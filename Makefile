@@ -24,6 +24,9 @@ install-extension: build-extension ## Install the extension
 	docker volume create $(VOLUME_NAME)
 	docker extension install $(IMAGE):$(TAG)
 
+uninstall-extension:	## Uninstall the extension
+		docker extension rm $(IMAGE):$(TAG)
+
 update-extension: build-extension ## Update the extension
 	docker extension update $(IMAGE):$(TAG)
 
