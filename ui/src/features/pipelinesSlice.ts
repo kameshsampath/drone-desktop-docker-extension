@@ -13,6 +13,8 @@ const ddClient = getDockerDesktopClient();
 
 function computePipelineStatus(state, pipelineId): PipelineStatus {
   const pipeline = _.find(state.rows, { id: pipelineId });
+
+  //console.log('Pipeline ' + JSON.stringify(pipeline));
   if (pipeline) {
     const steps = pipeline.steps;
 
@@ -32,7 +34,7 @@ function computePipelineStatus(state, pipelineId): PipelineStatus {
 }
 
 export const importPipelines = createAsyncThunk('pipelines/loadPipelines', async () => {
-  console.log('Loading pipelines from backend');
+  //console.log('Loading pipelines from backend');
   const response = (await ddClient.extension.vm.service.get('/pipelines')) as Pipeline[];
   return response;
 });
@@ -40,11 +42,11 @@ export const importPipelines = createAsyncThunk('pipelines/loadPipelines', async
 export const savePipelines = (): AppThunk => async (_dispatch, getState) => {
   const currState = getState().pipelines;
   const pipelines = currState.rows;
-  console.log('Saving pipelines to backend ' + JSON.stringify(pipelines));
+  //console.log('Saving pipelines to backend ' + JSON.stringify(pipelines));
   if (pipelines?.length > 0) {
     try {
-      const response = await ddClient.extension.vm.service.post('/pipeline', pipelines);
-      console.log('Saved pipelines' + JSON.stringify(response));
+      await ddClient.extension.vm.service.post('/pipeline', pipelines);
+      // console.log('Saved pipelines' + JSON.stringify(response));
     } catch (err) {
       console.error('Error Saving' + JSON.stringify(err));
       ddClient.desktopUI.toast.error(`Error saving pipelines ${err.message}`);
@@ -61,11 +63,11 @@ export const pipelinesSlice = createSlice({
       state.rows = _.unionBy(state.rows, rowsFromPayload(action.payload), 'id');
     },
     addStep: (state, action: PayloadAction<StepPayload>) => {
-      // console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
+      //console.log('Action::' + action.type + '::' + JSON.stringify(action.payload));
       const { pipelineID, step } = action.payload;
       const idx = _.findIndex(state.rows, { id: pipelineID });
       if (idx != -1) {
-        //console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
+        // console.log('Add Step Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
         let oldSteps = state.rows[idx].steps;
         //this will be the first step of the pipeline
         if (!oldSteps) {
@@ -87,10 +89,10 @@ export const pipelinesSlice = createSlice({
       const { pipelineID, step } = action.payload;
       const idx = _.findIndex(state.rows, { id: pipelineID });
       if (idx != -1) {
-        //console.log('Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
+        // console.log(' Update Found::' + idx + '::' + JSON.stringify(state.rows[idx]));
         const oldSteps = state.rows[idx].steps;
         const stepIdx = _.findIndex(oldSteps, { stepName: step.stepName });
-        //console.log('Found Step::' + stepIdx + '::' + JSON.stringify(oldSteps));
+        //console.log('Update Found Step::' + stepIdx + '::' + JSON.stringify(oldSteps));
         if (stepIdx != -1) {
           oldSteps[stepIdx] = step;
           state.rows[idx].steps = oldSteps;
@@ -121,7 +123,7 @@ export const pipelinesSlice = createSlice({
     },
     removePipelines: (state, action: PayloadAction<string[]>) => {
       const pipelineIds = action.payload;
-      console.log('Action::removePipelines::Payload' + JSON.stringify(pipelineIds));
+      // console.log('Action::removePipelines::Payload' + JSON.stringify(pipelineIds));
       state.rows = _.remove(state.rows, (o) => !_.includes(pipelineIds, o.id));
     }
   },
@@ -149,11 +151,13 @@ export const selectRows = (state: RootState) => state.pipelines.rows;
 export const dataLoadStatus = (state: RootState) => state.pipelines.status;
 
 function updatePipelineStatus(state, pipelineId: string) {
-  //console.log("Update Pipeline Status..")
   const status = computePipelineStatus(state, pipelineId);
+  //console.log('Update Pipeline Status..' + JSON.stringify(status));
   const idx = _.findIndex(state.rows, { id: pipelineId });
   if (idx != -1) {
-    state.rows[idx].status = status;
+    state.rows[idx].status.error = status.error;
+    state.rows[idx].status.running = status.running;
+    state.rows[idx].status.done = status.done;
   }
 }
 

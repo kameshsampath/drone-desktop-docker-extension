@@ -19,11 +19,10 @@ import {
   selectRows,
   updateStep,
   addStep,
-  pipelineStatus,
   savePipelines
 } from '../features/pipelinesSlice';
 import { useAppDispatch } from '../app/hooks';
-import { getDockerDesktopClient, md5 } from '../utils';
+import { getDockerDesktopClient, md5, pipelineFQN as getPipelineFQN } from '../utils';
 import { Event, EventStatus, Step } from '../features/types';
 import { PipelineTableToolbar } from './Toolbar';
 import { PipelinesTableHead } from './PipelinesTableHead';
@@ -81,9 +80,11 @@ export const PipelinesTable = (props) => {
             }
 
             const stepContainerId = event.Actor['ID'];
-            const pipelineID = md5(event.Actor.Attributes['io.drone.pipeline.dir']);
-            const pipelineFQN = event.Actor.Attributes['io.drone.pipeline.FQN'];
-            const stepName = event.Actor.Attributes['io.drone.stage.name'];
+            const pipelineDir = event.Actor.Attributes['io.drone.desktop.pipeline.dir'];
+            const pipelineID = md5(pipelineDir);
+            const pipelineName = event.Actor.Attributes['io.drone.stage.name'];
+            const pipelineFQN = getPipelineFQN(pipelineDir, pipelineName);
+            const stepName = event.Actor.Attributes['io.drone.step.name'];
             const stepImage = event.Actor.Attributes['image'];
             switch (event.status) {
               case EventStatus.START: {

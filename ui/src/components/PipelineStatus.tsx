@@ -23,13 +23,13 @@ export const PipelineStatus = (props) => {
   }, []);
 
   useEffect(() => {
-    if (status?.running > 0) {
+    if (status?.running > 0 && status?.running != status?.done) {
       setStatusColor('warning');
       setStatusText(`${status.running}/${status.total}(running)`);
     } else if (status?.error > 0) {
       setStatusColor('error');
       setStatusText(`${status.error}/${status.total}(errored)`);
-    } else if (status?.done > 0) {
+    } else if (status?.done == status.total) {
       setStatusColor('success');
       setStatusText(`${status.done}/${status.total}(completed)`);
     } else {
