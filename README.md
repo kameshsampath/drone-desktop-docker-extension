@@ -14,25 +14,25 @@ A Docker Desktop extension to run and manage [drone](https://drone.io) pipelines
 
 Search and import existing Drone Pipelines, ideally these are project source folders that has `.drone.yml`:
 
-![Import Pipelines](https://www.screencast.com/t/BRoQF4F4w)
+![Import Pipelines](./docs/images/drone_desktop_feature_import.gif)
 
 ### Open Drone pipeline project in Visual Studio Code
 
 The extension allows you to open and edit Drone Pipelines project in Visual Studio Code
 
-![Open in Visual Studio Code](https://www.screencast.com/t/KlPho3jQqsi)
+![Open in Visual Studio Code](./docs/images/drone_desktop_feature_open_in_vs_code.gif)
 
 ### View Running Pipeline Containers
 
 The extension allows you view the running containers of a pipeline along with its status.
 
-![View running Pipeline Containers](https://www.screencast.com/t/MKesIXlmpJH)
+![View running Pipeline Containers](./docs/images/drone_desktop_feature_run_pipelines.gif)
 
 ### Remove Pipelines
 
 Finally you can also remove one or more Drone pipelines, removing does not physically delete but the pipeline is ignored by the extension watchers.
 
-![Remove Pipelines](https://www.screencast.com/t/UVDNCTUloePf)
+![Remove Pipelines](./docs/images/drone_desktop_feature_remove_pipelines.gif)
 
 ## TODO
 
