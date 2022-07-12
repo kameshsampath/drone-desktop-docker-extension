@@ -18,8 +18,7 @@ bin-all:	## Build binaries for all targetted architectures
 	goreleaser build --snapshot --rm-dist
 
 build-extension: ## Build service image to be deployed as a desktop extension
-	docker build --tag=$(IMAGE):$(shell svu next) .
-	docker tag $(IMAGE):$(shell svu next) $(IMAGE):$(TAG)
+	docker build --tag=$(IMAGE):$(TAG) .
 
 install-extension: build-extension ## Install the extension
 	docker volume create $(VOLUME_NAME)
