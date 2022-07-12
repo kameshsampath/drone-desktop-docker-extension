@@ -28,6 +28,7 @@ builds:
     goos:
       - linux
       - darwin
+      - windows
     asmflags:
       - all=-trimpath={{.Env.GOPATH}}
     flags:

@@ -79,6 +79,7 @@ export const PipelinesTable = (props) => {
               return;
             }
 
+            //console.log('Actor %s', JSON.stringify(event.Actor));
             const stepContainerId = event.Actor['ID'];
             const pipelineDir = event.Actor.Attributes['io.drone.desktop.pipeline.dir'];
             const pipelineID = md5(pipelineDir);
@@ -88,7 +89,6 @@ export const PipelinesTable = (props) => {
             const stepImage = event.Actor.Attributes['image'];
             switch (event.status) {
               case EventStatus.START: {
-                //console.log('START %s', JSON.stringify(event.Actor));
                 if (pipelineFQN && stepName) {
                   const stepInfo: Step = {
                     stepContainerId,

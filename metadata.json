@@ -8,7 +8,7 @@
   },
   "ui": {
     "dashboard-tab": {
-      "title": "Drone-Desktop",
+      "title": "Drone Desktop",
       "src": "index.html",
       "root": "ui",
       "backend": {
@@ -21,10 +21,26 @@
       {
         "darwin": [
           {
-            "path": "/usr/local/bin/yq"
+            "path": "/tools/darwin/yq"
           },
           {
-            "path": "/usr/local/bin/pipelines-finder"
+            "path": "/tools/darwin/pipelines-finder"
+          }
+        ],
+        "linux": [
+          {
+            "path": "/tools/linux/yq"
+          },
+          {
+            "path": "/tools/linux/pipelines-finder"
+          }
+        ],
+        "windows": [
+          {
+            "path": "/tools/windows/yq.exe"
+          },
+          {
+            "path": "/tools/windows/pipelines-finder.exe"
           }
         ]
       }

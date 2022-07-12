@@ -18,7 +18,8 @@ bin-all:	## Build binaries for all targetted architectures
 	goreleaser build --snapshot --rm-dist
 
 build-extension: ## Build service image to be deployed as a desktop extension
-	docker build --tag=$(IMAGE):$(TAG) .
+	docker build --tag=$(IMAGE):$(shell svu next) .
+	docker tag $(IMAGE):$(shell svu next) $(IMAGE):$(TAG)
 
 install-extension: build-extension ## Install the extension
 	docker volume create $(VOLUME_NAME)
@@ -33,8 +34,13 @@ update-extension: build-extension ## Update the extension
 prepare-buildx: ## Create buildx builder for multi-arch build, if not exists
 	docker buildx inspect $(BUILDER) || docker buildx create --name=$(BUILDER) --driver=docker-container --driver-opt=network=host
 
-push-extension: prepare-buildx ## Build & Upload extension image to hub. Do not push if tag already exists: make push-extension tag=0.1
-	docker pull $(IMAGE):$(TAG) && echo "Failure: Tag already exists" || docker buildx build --push --builder=$(BUILDER) --platform=linux/amd64,linux/arm64 --build-arg TAG=$(TAG) --tag=$(IMAGE):$(TAG) .
+push-extension: prepare-buildx ## Build & Upload extension image to hub. Do not push if tag already exists: TAG=$(shell svu c) make push-extension
+	docker pull $(IMAGE):$(shell svu c) && echo "Failure: Tag already exists" || docker buildx build --push --builder=$(BUILDER) --platform=linux/amd64,linux/arm64 --build-arg TAG=$(shell svu c) --tag=$(IMAGE):$(shell svu c) .
+
+release:	# Create a new release
+	git tag "$(shell svu next)"
+	git push --tags
+	goreleaser --rm-dist
 
 help: ## Show this help
 	@echo Please specify a build target. The choices are:
