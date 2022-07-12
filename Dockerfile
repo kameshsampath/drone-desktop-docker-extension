@@ -68,7 +68,7 @@ RUN <<EOT
     cp /tools/linux/$TARGETARCH/yq /tools/linux/yq
     if [ "$TARGETARCH" == "amd64" ];
     then
-      cp /tools/windows/$TARGETARCH/yq /tools/windows/yq.exe
+      cp /tools/windows/$TARGETARCH/yq.exe /tools/windows/yq.exe
     fi
 EOT
 
