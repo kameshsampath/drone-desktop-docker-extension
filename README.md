@@ -55,3 +55,7 @@ make uninstall-extension
 ## Issues
 
 Welcome all feedback and improvements. Please open an [issue](https://github.com/kameshsampath/drone-desktop-docker-extension/issues) for any bugs, feature requests
+
+## Disclaimer
+
+This is not an officially supported Harness product.
