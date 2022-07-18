@@ -43,7 +43,8 @@ You can remove one or more Drone pipelines, removing does not physically delete 
 ## Install Extension
 
 ```shell
-make install-extension
+docker volume create drone-desktop-data
+docker extension install kameshsampath/drone-desktop-extension:v1.0.2
 ```
 
 ## Remove Extension
