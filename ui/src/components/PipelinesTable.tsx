@@ -153,6 +153,11 @@ export const PipelinesTable = (props) => {
 
     return () => {
       process.close();
+      //Write the current tstamp to a file so that we can track the events later
+      const writeCurrTstamp = async () => {
+        await getDockerDesktopClient().extension.vm.cli.exec('sh', ['-c', '"date +%s > /data/currts"']);
+      };
+      writeCurrTstamp();
     };
   }, [eventTS]);
 
