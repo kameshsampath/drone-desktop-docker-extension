@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Grid, Stack, Typography } from '@mui/material';
 import ImportDialog from './components/ImportPipelineDialog';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { PipelinesTable } from './components/PipelinesTable';
+import { getDockerDesktopClient } from './utils';
 
 export function App() {
   const [openImportDialog, setOpenImportDialog] = useState<boolean>(false);
@@ -16,6 +17,19 @@ export function App() {
     setOpenImportDialog(false);
   };
   /* End of Handlers */
+
+  useEffect(() => {
+    //nothing to do while loading ...
+    return () => {
+      //Write the current tstamp to a file so that we can track the events later
+      const writeCurrTstamp = async () => {
+        await getDockerDesktopClient().extension.vm.cli.exec('sh', ['-c', '"date +%s > data/currts"']);
+      };
+      writeCurrTstamp()
+        .then((o) => console.log(JSON.stringify(o)))
+        .catch(console.error);
+    };
+  }, []);
 
   return (
     <>

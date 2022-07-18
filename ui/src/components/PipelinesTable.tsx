@@ -45,105 +45,116 @@ export const PipelinesTable = (props) => {
 
   const ddClient = getDockerDesktopClient();
 
+  const [eventTS, setEventTS] = useState('');
+
   useEffect(() => {
     if (pipelinesStatus === 'idle') {
       dispatch(importPipelines());
     }
+    const loadEventTS = async () => {
+      const out = await getDockerDesktopClient().extension.vm.cli.exec('sh', ['-c', '"cat /data/currts"']);
+      if (out.stdout) {
+        setEventTS(out.stdout);
+      }
+    };
+    loadEventTS().catch(console.error);
   }, [pipelinesStatus, dispatch]);
 
   useEffect(() => {
-    const process = ddClient.docker.cli.exec(
-      'events',
-      [
-        '--filter',
-        'type=container',
-        '--filter',
-        'event=start',
-        '--filter',
-        'event=stop',
-        '--filter',
-        'event=kill',
-        '--filter',
-        'event=die',
-        '--filter',
-        'event=destroy',
-        '--format',
-        '{{json .}}'
-      ],
-      {
-        stream: {
-          splitOutputLines: true,
-          async onOutput(data) {
-            const event = JSON.parse(data.stdout ?? data.stderr) as Event;
-            if (!event) {
-              return;
+    const args = [
+      '--filter',
+      'type=container',
+      '--filter',
+      'event=start',
+      '--filter',
+      'event=stop',
+      '--filter',
+      'event=kill',
+      '--filter',
+      'event=die',
+      '--filter',
+      'event=destroy',
+      '--format',
+      '{{json .}}'
+    ];
+
+    if (eventTS) {
+      args.push('--since', eventTS.trimEnd());
+    }
+
+    const process = ddClient.docker.cli.exec('events', args, {
+      stream: {
+        splitOutputLines: true,
+        async onOutput(data) {
+          const event = JSON.parse(data.stdout ?? data.stderr) as Event;
+          if (!event) {
+            return;
+          }
+
+          //console.log('Actor %s', JSON.stringify(event.Actor));
+          const stepContainerId = event.Actor['ID'];
+          const pipelineDir = event.Actor.Attributes['io.drone.desktop.pipeline.dir'];
+          const pipelineID = md5(pipelineDir);
+          const pipelineName = event.Actor.Attributes['io.drone.stage.name'];
+          const pipelineFQN = getPipelineFQN(pipelineDir, pipelineName);
+          const stepName = event.Actor.Attributes['io.drone.step.name'];
+          const stepImage = event.Actor.Attributes['image'];
+          switch (event.status) {
+            case EventStatus.START: {
+              if (pipelineFQN && stepName) {
+                const stepInfo: Step = {
+                  stepContainerId,
+                  pipelineFQN,
+                  stepName,
+                  stepImage,
+                  status: 'start'
+                };
+                dispatch(
+                  addStep({
+                    pipelineID,
+                    step: stepInfo
+                  })
+                );
+              }
+              break;
             }
 
-            //console.log('Actor %s', JSON.stringify(event.Actor));
-            const stepContainerId = event.Actor['ID'];
-            const pipelineDir = event.Actor.Attributes['io.drone.desktop.pipeline.dir'];
-            const pipelineID = md5(pipelineDir);
-            const pipelineName = event.Actor.Attributes['io.drone.stage.name'];
-            const pipelineFQN = getPipelineFQN(pipelineDir, pipelineName);
-            const stepName = event.Actor.Attributes['io.drone.step.name'];
-            const stepImage = event.Actor.Attributes['image'];
-            switch (event.status) {
-              case EventStatus.START: {
-                if (pipelineFQN && stepName) {
-                  const stepInfo: Step = {
-                    stepContainerId,
-                    pipelineFQN,
-                    stepName,
-                    stepImage,
-                    status: 'start'
-                  };
-                  dispatch(
-                    addStep({
-                      pipelineID,
-                      step: stepInfo
-                    })
-                  );
-                }
-                break;
+            case EventStatus.STOP:
+            case EventStatus.DIE:
+            case EventStatus.KILL: {
+              //console.log('STOP/DIE/KILL %s', JSON.stringify(event));
+              const exitCode = parseInt(event.Actor.Attributes['exitCode']);
+              if (pipelineFQN && stepName) {
+                const stepInfo: Step = {
+                  stepContainerId,
+                  pipelineFQN,
+                  stepName,
+                  stepImage,
+                  status: exitCode === 0 ? 'done' : 'error'
+                };
+                dispatch(
+                  updateStep({
+                    pipelineID,
+                    step: stepInfo
+                  })
+                );
+                dispatch(savePipelines());
               }
-
-              case EventStatus.STOP:
-              case EventStatus.DIE:
-              case EventStatus.KILL: {
-                //console.log('STOP/DIE/KILL %s', JSON.stringify(event));
-                const exitCode = parseInt(event.Actor.Attributes['exitCode']);
-                if (pipelineFQN && stepName) {
-                  const stepInfo: Step = {
-                    stepContainerId,
-                    pipelineFQN,
-                    stepName,
-                    stepImage,
-                    status: exitCode === 0 ? 'done' : 'error'
-                  };
-                  dispatch(
-                    updateStep({
-                      pipelineID,
-                      step: stepInfo
-                    })
-                  );
-                  dispatch(savePipelines());
-                }
-                break;
-              }
-              default: {
-                //not handled EventStatus.DESTROY
-                break;
-              }
+              break;
+            }
+            default: {
+              //not handled EventStatus.DESTROY
+              break;
             }
           }
         }
       }
-    );
+    });
 
     return () => {
       process.close();
     };
-  }, []);
+  }, [eventTS]);
 
   // Avoid a layout jump when reaching the last page with empty rows.
   const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - pipelines?.length) : 0;
